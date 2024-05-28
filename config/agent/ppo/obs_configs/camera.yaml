@@ -1,0 +1,19 @@
+# @package _group_
+camera:
+  module: camera.rgb
+  location: [-1.5, 0, 2.0]
+  rotation: [0, 0, 0]
+  width: 900
+  height: 256
+  fov: 100
+  bev_location: [0, 0, 50.0]
+  bev_rotation: [0, -90, 0]
+  bev_width: 512
+  bev_height: 512
+  bev_fov: 50
+speed:
+  module: actor_state.speed
+control:
+  module: actor_state.control
+velocity:
+  module: actor_state.velocity

@@ -1,0 +1,10 @@
+# @package _group_
+ppo:
+  entry_point: env_agents.rl_camera.rl_camera_agent:RlCameraAgent
+  wb_run_path: null
+  wb_ckpt_step: null
+  env_wrapper:
+    entry_point: env_agents.rl_camera.utils.rl_camera_wrapper:RlCameraWrapper
+    kwargs:
+      input_states: [speed_norm, yaw, control, vel_xy]
+      acc_as_action: False
