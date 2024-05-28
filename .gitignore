@@ -393,3 +393,5 @@ pyrightconfig.json
 ## Model weights
 *.pt
 *.pth
+data
+logs
