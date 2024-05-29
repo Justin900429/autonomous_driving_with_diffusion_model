@@ -1,4 +1,4 @@
-# HW2
+# README
 
 ## Setup
 
