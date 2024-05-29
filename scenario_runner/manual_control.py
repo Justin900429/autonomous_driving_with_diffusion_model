@@ -79,7 +79,7 @@ import pygame
 
 def get_actor_display_name(actor, truncate=250):
     name = " ".join(actor.type_id.replace("_", ".").title().split(".")[1:])
-    return (name[: truncate - 1] + u"\u2026") if len(name) > truncate else name
+    return (name[: truncate - 1] + "\u2026") if len(name) > truncate else name
 
 
 # ==============================================================================
@@ -88,11 +88,9 @@ def get_actor_display_name(actor, truncate=250):
 
 
 class WorldSR(World):
-
     restarted = False
 
     def restart(self):
-
         if self.restarted:
             return
         self.restarted = True
@@ -173,7 +171,6 @@ def game_loop(args):
             pygame.display.flip()
 
     finally:
-
         if world and world.recording_enabled:
             client.stop_recorder()
 
@@ -235,7 +232,6 @@ def main():
     print(__doc__)
 
     try:
-
         game_loop(args)
 
     except KeyboardInterrupt:
@@ -245,5 +241,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

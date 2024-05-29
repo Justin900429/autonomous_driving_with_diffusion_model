@@ -28,7 +28,7 @@ class ObsManager(ObsManagerBase):
     def _define_obs_space(self):
         self.obs_space = spaces.Dict(
             {
-                "frame": spaces.Discrete(2 ** 32 - 1),
+                "frame": spaces.Discrete(2**32 - 1),
                 "binary_mask": spaces.MultiBinary(self._max_detection_number),
                 "location": spaces.Box(
                     low=-self._distance_threshold,

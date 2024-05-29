@@ -52,7 +52,6 @@ class GlobalRoutePlanner(object):
         )  # Map with structure {road_id: {lane_id: edge, ... }, ... }
 
         for segment in self._topology:
-
             entry_xyz, exit_xyz = segment["entryxyz"], segment["exitxyz"]
             path = segment["path"]
             entry_wp, exit_wp = segment["entry"], segment["exit"]

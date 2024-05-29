@@ -670,7 +670,6 @@ class CarlaDataProvider(object):  # pylint: disable=too-many-public-methods
         CarlaDataProvider.generate_spawn_points()
 
         for actor in actor_list:
-
             # Get the blueprint
             blueprint = CarlaDataProvider.create_blueprint(
                 actor.model, actor.rolename, actor.color, actor.category

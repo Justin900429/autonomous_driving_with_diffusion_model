@@ -63,7 +63,6 @@ class BackgroundActivity(BasicScenario):
         )
 
     def _initialize_actors(self, config):
-
         town_name = config.town
         if town_name in self.town_amount:
             amount = self.town_amount[town_name]

@@ -33,7 +33,6 @@ class PPO:
         lr_schedule_step=None,
         start_num_timesteps: int = 0,
     ):
-
         self.policy = policy
         self.env = env
         self.learning_rate = learning_rate
@@ -153,7 +152,6 @@ class PPO:
             # while self.buffer.sample_queue.qsize() < 3:
             # time.sleep(0.01)
             for i in range(data_len):
-
                 if self.buffer.sample_queue.empty():
                     while self.buffer.sample_queue.empty():
                         # print(f'buffer_empty: {self.buffer.sample_queue.qsize()}')

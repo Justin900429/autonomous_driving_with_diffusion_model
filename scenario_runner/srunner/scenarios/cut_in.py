@@ -53,7 +53,6 @@ class CutIn(BasicScenario):
         criteria_enable=True,
         timeout=600,
     ):
-
         self.timeout = timeout
         self._map = CarlaDataProvider.get_map()
         self._reference_waypoint = self._map.get_waypoint(
@@ -83,7 +82,6 @@ class CutIn(BasicScenario):
             self._trigger_distance = random.randint(10, 40)
 
     def _initialize_actors(self, config):
-
         # direction of lane, on which other_actor is driving before lane change
         if "LEFT" in self._config.name.upper():
             self._direction = "left"

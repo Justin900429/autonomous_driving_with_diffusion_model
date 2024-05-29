@@ -177,7 +177,6 @@ def compare_scenarios(scenario_choice, existent_scenario):
     existent_vec = transform_to_pos_vec(existent_scenario)
     for pos_choice in choice_vec:
         for pos_existent in existent_vec:
-
             dx = float(pos_choice["x"]) - float(pos_existent["x"])
             dy = float(pos_choice["y"]) - float(pos_existent["y"])
             dz = float(pos_choice["z"]) - float(pos_existent["z"])

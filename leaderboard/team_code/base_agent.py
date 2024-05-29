@@ -427,7 +427,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
         return cords
 
     def _translate_tl_state(self, state):
-
         if state == carla.TrafficLightState.Red:
             return 0
         elif state == carla.TrafficLightState.Yellow:
@@ -442,7 +441,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
             return None
 
     def _get_affordances(self):
-
         # affordance tl
         affordances = {}
         affordances["traffic_light"] = None
@@ -460,7 +458,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
         return affordances
 
     def _get_3d_bbs(self, max_distance=50):
-
         bounding_boxes = {
             "traffic_lights": [],
             "stop_signs": [],
@@ -523,7 +520,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
                 )
 
         for vehicle in bb_3d["vehicles"]:
-
             trig_loc_world = self._create_bb_points(vehicle).T
             cords_x_y_z = self._world_to_sensor(
                 trig_loc_world, self._get_sensor_position(seg_cam), False
@@ -540,7 +536,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
                     bounding_boxes["vehicles"].append(veh_bb)
 
         for pedestrian in bb_3d["pedestrians"]:
-
             trig_loc_world = self._create_bb_points(pedestrian).T
             cords_x_y_z = self._world_to_sensor(
                 trig_loc_world, self._get_sensor_position(seg_cam), False
@@ -568,7 +563,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
         """
 
         for bb_type in bbs:
-
             _region = np.zeros(seg_img.shape)
 
             if bb_type == "traffic_light":
@@ -578,9 +572,7 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
                     _region[box[0][1] : box[1][1], box[0][0] : box[1][0]] = 1
                 seg_img[(_region == 1)] = 23
             else:
-
                 for bb in bbs[bb_type]:
-
                     _region[bb[0][1] : bb[1][1], bb[0][0] : bb[1][0]] = 1
 
                 if bb_type == "stop_sign":
@@ -613,7 +605,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
             )
 
             if 0 < distance_to_car <= max_distance:
-
                 if hasattr(_obstacle, "bounding_box"):
                     loc = _obstacle.bounding_box.location
                     _obstacle.get_transform().transform(loc)
@@ -726,7 +717,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
         ).T
 
         if np.any(camera_bbox[:, 2] > 0):
-
             camera_bbox = np.array(camera_bbox)
             _positive_bb = camera_bbox[camera_bbox[:, 2] > 0]
 
@@ -758,7 +748,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
             _region_size (int, optional): [description]. Defaults to 6.
         """
         for stop in stop_signs:
-
             _dist = self._get_distance(stop.get_transform().location)
 
             _region = np.abs(depth_img - _dist)
@@ -776,7 +765,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
             ]
 
             if _x > 0:  # stop is in front of camera
-
                 bb = self._create_2d_bb_points(trigger, 4)
                 trig_loc_world = self._trig_to_world(bb, stop, trigger)
                 cords_x_y_z = self._world_to_sensor(
@@ -796,7 +784,6 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
                 )
 
                 if np.any(camera_bbox[:, 2] > 0):
-
                     camera_bbox = np.array(camera_bbox)
 
                     polygon = [
@@ -1029,12 +1016,12 @@ class BaseAgent(autonomous_agent.AutonomousAgent):
             distance_to_car = trigger.location.distance(self._vehicle.get_location())
 
             a = np.sqrt(
-                trigger.extent.x ** 2 + trigger.extent.y ** 2 + trigger.extent.z ** 2
+                trigger.extent.x**2 + trigger.extent.y**2 + trigger.extent.z**2
             )
             b = np.sqrt(
-                self._vehicle.bounding_box.extent.x ** 2
-                + self._vehicle.bounding_box.extent.y ** 2
-                + self._vehicle.bounding_box.extent.z ** 2
+                self._vehicle.bounding_box.extent.x**2
+                + self._vehicle.bounding_box.extent.y**2
+                + self._vehicle.bounding_box.extent.z**2
             )
 
             s = a + b + 10

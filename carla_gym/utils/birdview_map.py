@@ -18,7 +18,6 @@ COLOR_WHITE = (255, 255, 255)
 class MapImage(object):
     @staticmethod
     def draw_map_image(carla_map, pixels_per_meter, precision=0.05):
-
         waypoints = carla_map.generate_waypoints(2)
         margin = 100
         max_x = (

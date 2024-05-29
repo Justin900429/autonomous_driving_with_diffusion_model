@@ -38,7 +38,6 @@ def get_distance_along_route(route, target_location):
     target_location_from_wp = wmap.get_waypoint(target_location).transform.location
 
     for position, _ in route:
-
         location = target_location_from_wp
 
         # Don't perform any calculations for the first route point
@@ -358,7 +357,6 @@ def generate_target_waypoint(waypoint, turn=0):
     reached_junction = False
     wp_list = []
     while True:
-
         wp_choice = waypoint.next(sampling_radius)
         #   Choose path at intersection
         if not reached_junction and (len(wp_choice) > 1 or wp_choice[0].is_junction):

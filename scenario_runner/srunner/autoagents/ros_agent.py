@@ -436,7 +436,6 @@ class RosAgent(AutonomousAgent):
         z = data["transform"]["z"]
 
         if self.odometry_publisher:
-
             odometry = Odometry()
             odometry.header.frame_id = "map"
             odometry.header.stamp = rospy.Time.from_sec(self.timestamp)

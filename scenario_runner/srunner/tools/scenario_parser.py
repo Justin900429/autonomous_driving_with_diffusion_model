@@ -55,7 +55,6 @@ class ScenarioConfigurationParser(object):
             tree = ET.parse(file_name)
 
             for scenario in tree.iter("scenario"):
-
                 scenario_config_name = scenario.attrib.get("name", None)
                 scenario_config_type = scenario.attrib.get("type", None)
 
@@ -106,7 +105,6 @@ class ScenarioConfigurationParser(object):
                     )
 
                 for ego_vehicle in scenario.iter("ego_vehicle"):
-
                     new_config.ego_vehicles.append(
                         ActorConfigurationData.parse_from_node(ego_vehicle, "hero")
                     )

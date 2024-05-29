@@ -39,7 +39,7 @@ def get_speed(vehicle):
     :return: speed as a float in Kmh
     """
     vel = vehicle.get_velocity()
-    return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+    return 3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)
 
 
 def compute_yaw_difference(yaw1, yaw2):

@@ -281,7 +281,6 @@ class MetricsParser(object):
     """
 
     def __init__(self, recorder_info):
-
         self.recorder_info = recorder_info
         self.frame_list = None
         self.frame_row = None
@@ -333,7 +332,6 @@ class MetricsParser(object):
         frames_info = []
 
         for frame in recorder_list:
-
             # Divide the frame in lines
             self.frame_list = frame.split("\n")
 
@@ -372,7 +370,6 @@ class MetricsParser(object):
             while self.frame_row.startswith(" Create") or self.frame_row.startswith(
                 "  "
             ):
-
                 if self.frame_row.startswith(" Create"):
                     elements = self.get_row_elements(1, " ")
                     actor_id = int(elements[1][:-1])
@@ -387,7 +384,6 @@ class MetricsParser(object):
                 self.next_row()
 
             while self.frame_row.startswith(" Destroy"):
-
                 elements = self.get_row_elements(1, " ")
 
                 actor_id = int(elements[1])
@@ -396,7 +392,6 @@ class MetricsParser(object):
                 self.next_row()
 
             while self.frame_row.startswith(" Collision"):
-
                 elements = self.get_row_elements(1, " ")
 
                 actor_id = int(elements[4])
@@ -412,7 +407,6 @@ class MetricsParser(object):
                 self.next_row()
 
             while self.frame_row.startswith(" Parenting"):
-
                 elements = self.get_row_elements(1, " ")
 
                 actor_id = int(elements[1])
@@ -425,7 +419,6 @@ class MetricsParser(object):
                 self.next_row()
 
                 while self.frame_row.startswith("  "):
-
                     elements = self.get_row_elements(2, " ")
                     actor_id = int(elements[1])
 
@@ -438,7 +431,6 @@ class MetricsParser(object):
                 self.next_row()
 
                 while self.frame_row.startswith("  "):
-
                     elements = self.get_row_elements(2, " ")
                     actor_id = int(elements[1])
 
@@ -450,7 +442,6 @@ class MetricsParser(object):
                 self.next_row()
 
                 while self.frame_row.startswith("  "):
-
                     elements = self.get_row_elements(2, " ")
                     actor_id = int(elements[1])
 
@@ -541,7 +532,6 @@ class MetricsParser(object):
                     self.next_row()
 
             if self.frame_row.startswith(" Current platform time"):
-
                 elements = self.get_row_elements(1, " ")
 
                 platform_time = float(elements[-1])
@@ -553,7 +543,6 @@ class MetricsParser(object):
 
                 actor_id = None
                 while self.frame_row.startswith("  "):
-
                     elements = self.get_row_elements(2, " ")
                     actor_id = int(elements[1])
                     physics_control = carla.VehiclePhysicsControl()
@@ -562,7 +551,6 @@ class MetricsParser(object):
                     forward_gears = []
                     wheels = []
                     while self.frame_row.startswith("   "):
-
                         if self.frame_row.startswith("    "):
                             elements = self.get_row_elements(4, " ")
                             if elements[0] == "gear":

@@ -12,7 +12,6 @@ from carla_gym.core.task_actor.common.navigation.map_utils import RoadOption
 
 class ObsManager(ObsManagerBase):
     def __init__(self, obs_configs):
-
         self._gnss_sensor = None
         self._imu_sensor = None
         self._queue_timeout = 10.0
@@ -116,7 +115,7 @@ class ObsManager(ObsManagerBase):
         ref_rot_in_global = carla.Rotation(yaw=np.rad2deg(compass) - 90.0)
         loc_in_ev = trans_utils.vec_global_to_ref(next_vec_in_global, ref_rot_in_global)
 
-        if np.sqrt(loc_in_ev.x ** 2 + loc_in_ev.y ** 2) < 12.0 and loc_in_ev.x < 0.0:
+        if np.sqrt(loc_in_ev.x**2 + loc_in_ev.y**2) < 12.0 and loc_in_ev.x < 0.0:
             self._idx += 1
 
         self._idx = min(self._idx, len(global_plan_gps) - 2)

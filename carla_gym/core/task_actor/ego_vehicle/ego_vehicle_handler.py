@@ -14,7 +14,12 @@ PENALTY_STOP = 0.80
 
 class EgoVehicleHandler(object):
     def __init__(
-        self, client, reward_configs, terminal_configs, traffic_manager, spawn_distance_to_ev=10.0
+        self,
+        client,
+        reward_configs,
+        terminal_configs,
+        traffic_manager,
+        spawn_distance_to_ev=10.0,
     ):
         self.ego_vehicles = {}
         self.info_buffers = {}
@@ -157,7 +162,6 @@ class EgoVehicleHandler(object):
                 self.ego_vehicles[ev_id].vehicle.apply_control(control)
 
                 next_waypoint = self.ego_vehicles[ev_id].get_next_location[0]
-
 
             if not set_camera:
                 set_camera = True
@@ -326,11 +330,11 @@ class EgoVehicleHandler(object):
                 score_penalty = (
                     1.0
                     * (1 - (outside_lane_length + wrong_lane_length) / completed_length)
-                    * (PENALTY_COLLISION_STATIC ** n_collisions_layout)
-                    * (PENALTY_COLLISION_VEHICLE ** n_collisions_vehicle)
-                    * (PENALTY_COLLISION_PEDESTRIAN ** n_collisions_pedestrian)
-                    * (PENALTY_TRAFFIC_LIGHT ** n_red_light)
-                    * (PENALTY_STOP ** n_stop_infraction)
+                    * (PENALTY_COLLISION_STATIC**n_collisions_layout)
+                    * (PENALTY_COLLISION_VEHICLE**n_collisions_vehicle)
+                    * (PENALTY_COLLISION_PEDESTRIAN**n_collisions_pedestrian)
+                    * (PENALTY_TRAFFIC_LIGHT**n_red_light)
+                    * (PENALTY_STOP**n_stop_infraction)
                 )
                 if info["route_completion"]["is_route_completed"] and n_collisions == 0:
                     is_route_completed_nocrash = 1.0

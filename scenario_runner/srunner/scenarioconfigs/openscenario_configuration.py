@@ -36,7 +36,6 @@ class OpenScenarioConfiguration(ScenarioConfiguration):
     """
 
     def __init__(self, filename, client):
-
         self.xml_tree = ET.parse(filename)
         self._filename = filename
 

@@ -77,7 +77,6 @@ class ResultOutputProvider(object):
         list_statistics = [header]
 
         for criterion in self._data.scenario.get_criteria():
-
             actual_value = criterion.actual_value
             expected_value = criterion.expected_value_success
             name = criterion.name

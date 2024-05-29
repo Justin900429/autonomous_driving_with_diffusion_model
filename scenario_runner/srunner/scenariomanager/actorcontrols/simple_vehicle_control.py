@@ -295,7 +295,7 @@ class SimpleVehicleControl(BasicControl):
         # set new linear velocity
         velocity = carla.Vector3D(0, 0, 0)
         direction = next_location - CarlaDataProvider.get_location(self._actor)
-        direction_norm = math.sqrt(direction.x ** 2 + direction.y ** 2)
+        direction_norm = math.sqrt(direction.x**2 + direction.y**2)
         velocity.x = direction.x / direction_norm * target_speed
         velocity.y = direction.y / direction_norm * target_speed
 

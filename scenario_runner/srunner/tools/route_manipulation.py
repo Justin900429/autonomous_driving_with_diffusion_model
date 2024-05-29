@@ -154,7 +154,6 @@ def interpolate_trajectory(world, waypoints_trajectory, hop_resolution=1.0):
     for i in range(
         len(waypoints_trajectory) - 1
     ):  # Goes until the one before the last.
-
         waypoint = waypoints_trajectory[i]
         waypoint_next = waypoints_trajectory[i + 1]
         interpolated_trace = grp.trace_route(waypoint, waypoint_next)

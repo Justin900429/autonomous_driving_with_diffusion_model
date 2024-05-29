@@ -24,7 +24,6 @@ class ObsManager(ObsManagerBase):
     """
 
     def __init__(self, obs_configs):
-
         self._sensor_type = "camera.rgb"
 
         self._height = obs_configs["height"]
@@ -43,12 +42,12 @@ class ObsManager(ObsManagerBase):
         )
 
         self._camera_transform = carla.Transform(location, rotation)
-                
+
         self._bev_height = obs_configs["bev_height"]
         self._bev_width = obs_configs["bev_width"]
         self._bev_channels = 3
         self._bev_fov = obs_configs["bev_fov"]
-        
+
         location = carla.Location(
             x=float(obs_configs["bev_location"][0]),
             y=float(obs_configs["bev_location"][1]),
@@ -68,10 +67,9 @@ class ObsManager(ObsManagerBase):
         super(ObsManager, self).__init__()
 
     def _define_obs_space(self):
-
         self.obs_space = spaces.Dict(
             {
-                "frame": spaces.Discrete(2 ** 32 - 1),
+                "frame": spaces.Discrete(2**32 - 1),
                 "data": spaces.Box(
                     low=0,
                     high=255,
@@ -84,7 +82,9 @@ class ObsManager(ObsManagerBase):
                     shape=(self._bev_height, self._bev_width, self._bev_channels),
                     dtype=np.uint8,
                 ),
-                "compass": spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32),
+                "compass": spaces.Box(
+                    low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32
+                ),
             }
         )
 
@@ -111,7 +111,7 @@ class ObsManager(ObsManagerBase):
             bp, self._camera_transform, attach_to=parent_actor.vehicle
         )
         self._sensor.listen(lambda image: self._parse_image(weak_self, image))
-        
+
         # BEV Camera
         bp = self._world.get_blueprint_library().find("sensor." + self._sensor_type)
         bp.set_attribute("image_size_x", str(self._bev_width))
@@ -121,7 +121,7 @@ class ObsManager(ObsManagerBase):
             bp, self._bev_transform, attach_to=parent_actor.vehicle
         )
         self._bev_sensor.listen(lambda image: self._bev_parse_image(weak_self, image))
-        
+
         # IMU sensor
         bp = self._world.get_blueprint_library().find("sensor.other.imu")
         bp.set_attribute("sensor_tick", "0.05")
@@ -137,14 +137,21 @@ class ObsManager(ObsManagerBase):
         try:
             frame, data = self._image_queue.get(True, self._queue_timeout)
             bev_frame, bev_data = self._bev_image_queue.get(True, self._queue_timeout)
-            compass_frame, compass_data = self._compass_queue.get(True, self._queue_timeout)
+            compass_frame, compass_data = self._compass_queue.get(
+                True, self._queue_timeout
+            )
             assert snap_shot.frame == frame
             assert snap_shot.frame == bev_frame
             assert snap_shot.frame == compass_frame
         except Empty:
             raise Exception("RGB sensor took too long!")
 
-        obs = {"frame": frame, "data": data, "bev_data": bev_data, "compass": compass_data}
+        obs = {
+            "frame": frame,
+            "data": data,
+            "bev_data": bev_data,
+            "compass": compass_data,
+        }
 
         return obs
 
@@ -176,7 +183,6 @@ class ObsManager(ObsManagerBase):
 
         self._image_queue.put((carla_image.frame, np_img))
 
-
     @staticmethod
     def _bev_parse_image(weak_self, carla_image):
         self = weak_self()
@@ -190,7 +196,7 @@ class ObsManager(ObsManagerBase):
         np_img = np_img[:, :, ::-1]
 
         self._bev_image_queue.put((carla_image.frame, np_img))
-        
+
     @staticmethod
     def _parse_imu(weak_self, carla_imu):
         self = weak_self()

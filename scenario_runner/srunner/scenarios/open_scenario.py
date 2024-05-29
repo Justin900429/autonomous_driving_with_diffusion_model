@@ -252,7 +252,6 @@ class OpenScenario(BasicScenario):
         return env_behavior
 
     def _create_init_behavior(self):
-
         init_behavior = py_trees.composites.Parallel(
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ALL, name="InitBehaviour"
         )
@@ -313,7 +312,6 @@ class OpenScenario(BasicScenario):
         joint_actor_list = self.other_actors + self.ego_vehicles + [None]
 
         for act in self.config.story.iter("Act"):
-
             act_sequence = py_trees.composites.Sequence(
                 name="Act StartConditions and behaviours"
             )
@@ -339,7 +337,6 @@ class OpenScenario(BasicScenario):
                 repetitions = sequence.attrib.get("maximumExecutionCount", 1)
 
                 for _ in range(int(repetitions)):
-
                     actor_ids = []
                     for actor in sequence.iter("Actors"):
                         for entity in actor.iter("EntityRef"):

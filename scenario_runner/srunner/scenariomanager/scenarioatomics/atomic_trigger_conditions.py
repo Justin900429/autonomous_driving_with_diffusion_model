@@ -835,7 +835,6 @@ class InTriggerDistanceToLocationAlongRoute(AtomicCondition):
             return new_status
 
         if current_location.distance(self._location) < self._distance + 20:
-
             actor_distance, _ = get_distance_along_route(self._route, current_location)
 
             # If closer than self._distance and hasn't passed the trigger point
@@ -1312,7 +1311,6 @@ class WaitEndIntersection(AtomicCondition):
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
 
     def update(self):
-
         new_status = py_trees.common.Status.RUNNING
 
         location = CarlaDataProvider.get_location(self.actor)
@@ -1359,7 +1357,6 @@ class WaitForBlackboardVariable(AtomicCondition):
             _ = blackboard.set(variable_name, var_init_value)
 
     def update(self):
-
         new_status = py_trees.common.Status.RUNNING
 
         blackv = py_trees.blackboard.Blackboard()

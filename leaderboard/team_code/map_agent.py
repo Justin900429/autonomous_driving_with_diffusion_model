@@ -91,12 +91,12 @@ def get_nearby_lights(vehicle, lights, pixels_per_meter=5.5, size=512, radius=5)
         light.get_transform().transform(trigger.location)
         dist = trigger.location.distance(vehicle.get_location())
         a = np.sqrt(
-            trigger.extent.x ** 2 + trigger.extent.y ** 2 + trigger.extent.z ** 2
+            trigger.extent.x**2 + trigger.extent.y**2 + trigger.extent.z**2
         )
         b = np.sqrt(
-            vehicle.bounding_box.extent.x ** 2
-            + vehicle.bounding_box.extent.y ** 2
-            + vehicle.bounding_box.extent.z ** 2
+            vehicle.bounding_box.extent.x**2
+            + vehicle.bounding_box.extent.y**2
+            + vehicle.bounding_box.extent.z**2
         )
 
         if dist > a + b:
@@ -137,12 +137,12 @@ def draw_traffic_lights(
         light.get_transform().transform(trigger.location)
         dist = trigger.location.distance(vehicle.get_location())
         a = np.sqrt(
-            trigger.extent.x ** 2 + trigger.extent.y ** 2 + trigger.extent.z ** 2
+            trigger.extent.x**2 + trigger.extent.y**2 + trigger.extent.z**2
         )
         b = np.sqrt(
-            vehicle.bounding_box.extent.x ** 2
-            + vehicle.bounding_box.extent.y ** 2
-            + vehicle.bounding_box.extent.z ** 2
+            vehicle.bounding_box.extent.x**2
+            + vehicle.bounding_box.extent.y**2
+            + vehicle.bounding_box.extent.z**2
         )
 
         if dist > a + b:
@@ -184,12 +184,12 @@ def draw_stop_signs(image, vehicle, lights, pixels_per_meter=5.5, size=512, radi
         light.get_transform().transform(trigger.location)
         dist = trigger.location.distance(vehicle.get_location())
         a = np.sqrt(
-            trigger.extent.x ** 2 + trigger.extent.y ** 2 + trigger.extent.z ** 2
+            trigger.extent.x**2 + trigger.extent.y**2 + trigger.extent.z**2
         )
         b = np.sqrt(
-            vehicle.bounding_box.extent.x ** 2
-            + vehicle.bounding_box.extent.y ** 2
-            + vehicle.bounding_box.extent.z ** 2
+            vehicle.bounding_box.extent.x**2
+            + vehicle.bounding_box.extent.y**2
+            + vehicle.bounding_box.extent.z**2
         )
 
         if dist > a + b:

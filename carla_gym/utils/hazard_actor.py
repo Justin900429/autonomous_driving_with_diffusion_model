@@ -159,7 +159,6 @@ def behavior_hazard_vehicle(
             actors["road_id"][i] != ego_vehicle["road_id"]
             or actors["lane_id"][i] != ego_vehicle["lane_id"] + lane_offset
         ):
-
             next_road_id = route_plan["road_id"][5]
             next_lane_id = route_plan["lane_id"][5]
 
@@ -203,7 +202,6 @@ def behavior_hazard_walker(
             actors["road_id"][i] != ego_vehicle["road_id"]
             or actors["lane_id"][i] != ego_vehicle["lane_id"] + lane_offset
         ):
-
             next_road_id = route_plan["road_id"][5]
             next_lane_id = route_plan["lane_id"][5]
 

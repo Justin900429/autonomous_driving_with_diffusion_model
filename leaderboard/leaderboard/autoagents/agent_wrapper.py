@@ -276,7 +276,6 @@ class AgentWrapper(object):
         sensor_ids = []
 
         for sensor in sensors:
-
             # Check if the is has been already used
             sensor_id = sensor["id"]
             if sensor_id in sensor_ids:

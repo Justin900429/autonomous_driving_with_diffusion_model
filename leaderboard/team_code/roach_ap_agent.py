@@ -343,7 +343,6 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
         self.step += 1
 
         if self.step < 20:
-
             control = carla.VehicleControl()
             control.steer = 0.0
             control.throttle = 0.0
@@ -559,7 +558,7 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
         ref_rot_in_global = carla.Rotation(yaw=np.rad2deg(compass) - 90.0)
         loc_in_ev = trans_utils.vec_global_to_ref(next_vec_in_global, ref_rot_in_global)
 
-        if np.sqrt(loc_in_ev.x ** 2 + loc_in_ev.y ** 2) < 12.0 and loc_in_ev.x < 0.0:
+        if np.sqrt(loc_in_ev.x**2 + loc_in_ev.y**2) < 12.0 and loc_in_ev.x < 0.0:
             self.navigation_idx += 1
 
         self.navigation_idx = min(self.navigation_idx, len(global_plan_gps) - 2)
@@ -582,7 +581,6 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
         )
 
     def process_act(self, action):
-
         # acc, steer = action.astype(np.float64)
         acc = action[0][0]
         steer = action[0][1]
@@ -616,7 +614,6 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
         return weather
 
     def _get_3d_bbs(self, max_distance=50):
-
         bounding_boxes = {
             "traffic_lights": [],
             "stop_signs": [],
@@ -658,7 +655,6 @@ class ROACHAgent(autonomous_agent.AutonomousAgent):
             )
 
             if 0 < distance_to_car <= max_distance:
-
                 if hasattr(_obstacle, "bounding_box"):
                     loc = _obstacle.bounding_box.location
                     _obstacle.get_transform().transform(loc)

@@ -82,7 +82,6 @@ def parse_routes_file(routes_xml_filename):
     tree = ET.parse(routes_xml_filename)
 
     for route in tree.iter("route"):
-
         route_id = int(route.attrib["id"])
 
         route_descriptions_dict[route_id] = {}

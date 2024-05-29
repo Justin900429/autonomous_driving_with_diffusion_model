@@ -56,7 +56,6 @@ def save_from_wp(endpoint, wp):
     used to copy paste it to the .json
     """
     with open(endpoint, mode="w") as fd:
-
         entry = {}
         transform = {
             "x": str(round(wp.transform.location.x, 2)),
@@ -76,7 +75,6 @@ def save_from_dict(endpoint, wp):
     used to copy paste it to the .json
     """
     with open(endpoint, mode="w") as fd:
-
         entry = {}
         transform = {
             "x": str(round(float(wp["x"]), 2)),
@@ -250,7 +248,6 @@ def main():
     args.scenarios = new_args_scenario
 
     for scenarios in town_data:
-
         if args.modify:
             modify_junction_scenarios(world, scenarios, args)
         else:

@@ -370,7 +370,6 @@ class CollisionTest(Criterion):
 
         # Loops through all the previous registered collisions
         for collision_location in self.registered_collisions:
-
             # Get the distance to the collision point
             distance_vector = actor_location - collision_location
             distance = math.sqrt(
@@ -440,7 +439,6 @@ class CollisionTest(Criterion):
 
         # Ignore it if its too close to a previous collision (avoid micro collisions)
         for collision_location in self.registered_collisions:
-
             distance_vector = actor_location - collision_location
             distance = math.sqrt(
                 math.pow(distance_vector.x, 2) + math.pow(distance_vector.y, 2)
@@ -855,7 +853,6 @@ class EndofRoadTest(Criterion):
         else:
             # Wait until the actor has left the road
             if self._road_id != current_waypoint.road_id or self._start_time:
-
                 # Start counting
                 if self._start_time is None:
                     self._start_time = GameTime.get_time()
@@ -953,7 +950,6 @@ class OnSidewalkTest(Criterion):
             current_wp.lane_type != carla.LaneType.Driving
             and current_wp.lane_type != carla.LaneType.Parking
         ):
-
             # Get the vertices of the vehicle
             heading_vec = current_tra.get_forward_vector()
             heading_vec.z = 0
@@ -993,7 +989,6 @@ class OnSidewalkTest(Criterion):
                 or bbox_wp[3].lane_type
                 == (carla.LaneType.Driving or carla.LaneType.Parking)
             ):
-
                 self._onsidewalk_active = False
                 self._outside_lane_active = False
 
@@ -1004,7 +999,6 @@ class OnSidewalkTest(Criterion):
                 or bbox_wp[2].lane_type == carla.LaneType.Sidewalk
                 or bbox_wp[3].lane_type == carla.LaneType.Sidewalk
             ):
-
                 if not self._onsidewalk_active:
                     self._onsidewalk_active = True
                     self._sidewalk_start_location = current_loc
@@ -1016,7 +1010,6 @@ class OnSidewalkTest(Criterion):
 
                 # Case 2.3) Outside lane
                 if distance_vehicle_wp >= current_wp.lane_width / 2:
-
                     if not self._outside_lane_active:
                         self._outside_lane_active = True
                         self._outside_lane_start_location = current_loc
@@ -1040,7 +1033,6 @@ class OnSidewalkTest(Criterion):
                     self._outside_lane_active = False
                 # Else, do nothing, the waypoint is too far to consider it a correct position
             else:
-
                 self._onsidewalk_active = False
                 self._outside_lane_active = False
 
@@ -1077,7 +1069,6 @@ class OnSidewalkTest(Criterion):
 
         # Register the sidewalk event
         if not self._onsidewalk_active and self._wrong_sidewalk_distance > 0:
-
             self.actual_value += 1
 
             onsidewalk_event = TrafficEvent(
@@ -1100,7 +1091,6 @@ class OnSidewalkTest(Criterion):
 
         # Register the outside of a lane event
         if not self._outside_lane_active and self._wrong_outside_lane_distance > 0:
-
             self.actual_value += 1
 
             outsidelane_event = TrafficEvent(
@@ -1133,7 +1123,6 @@ class OnSidewalkTest(Criterion):
         """
         # If currently at a sidewalk, register the event
         if self._onsidewalk_active:
-
             self.actual_value += 1
 
             onsidewalk_event = TrafficEvent(
@@ -1156,7 +1145,6 @@ class OnSidewalkTest(Criterion):
 
         # If currently outside of our lane, register the event
         if self._outside_lane_active:
-
             self.actual_value += 1
 
             outsidelane_event = TrafficEvent(
@@ -1361,7 +1349,6 @@ class OutsideRouteLanesTest(Criterion):
             self._last_road_id != current_road_id
             or self._last_lane_id != current_lane_id
         ):
-
             # Route direction can be considered continuous, except after exiting a junction.
             if self._pre_ego_waypoint.is_junction:
                 yaw_waypt = current_waypoint.transform.rotation.yaw % 360
@@ -1388,11 +1375,9 @@ class OutsideRouteLanesTest(Criterion):
                     waypoint_angle >= self.MAX_ALLOWED_WAYPOINT_ANGLE
                     and waypoint_angle <= (360 - self.MAX_ALLOWED_WAYPOINT_ANGLE)
                 ):
-
                     # Is the ego vehicle going back to the lane, or going out? Take the opposite
                     self._wrong_lane_active = not bool(self._wrong_lane_active)
                 else:
-
                     # Changing to a lane with the same direction
                     self._wrong_lane_active = False
 
@@ -1407,7 +1392,6 @@ class OutsideRouteLanesTest(Criterion):
         """
 
         if self._wrong_distance > 0:
-
             percentage = self._wrong_distance / self._total_distance * 100
 
             outside_lane = TrafficEvent(
@@ -1516,7 +1500,6 @@ class WrongLaneTest(Criterion):
             )
 
             if waypoint_angle > self.MAX_ALLOWED_WAYPOINT_ANGLE and self._in_lane:
-
                 self.test_status = "FAILURE"
                 self._in_lane = False
                 self.actual_value += 1
@@ -1528,7 +1511,6 @@ class WrongLaneTest(Criterion):
 
             # Continuity is broken after a junction so check vehicle-lane angle instead
             if self._previous_lane_waypoint.is_junction:
-
                 vector_wp = np.array(
                     [
                         next_waypoint.transform.location.x
@@ -1561,7 +1543,6 @@ class WrongLaneTest(Criterion):
                 )
 
                 if vehicle_lane_angle > self.MAX_ALLOWED_ANGLE:
-
                     self.test_status = "FAILURE"
                     self._in_lane = False
                     self.actual_value += 1
@@ -1583,7 +1564,6 @@ class WrongLaneTest(Criterion):
 
         # Register the event
         if self._in_lane and self._wrong_distance > 0:
-
             wrong_way_event = TrafficEvent(
                 event_type=TrafficEventType.WRONG_WAY_INFRACTION
             )
@@ -1621,7 +1601,6 @@ class WrongLaneTest(Criterion):
         If there is currently an event running, it is registered
         """
         if not self._in_lane:
-
             lane_waypoint = self._map.get_waypoint(self._actor.get_location())
             current_lane_id = lane_waypoint.lane_id
             current_road_id = lane_waypoint.road_id
@@ -1816,7 +1795,6 @@ class InRouteTest(Criterion):
             new_status = py_trees.common.Status.FAILURE
 
         elif self.test_status == "RUNNING" or self.test_status == "INIT":
-
             off_route = True
 
             shortest_distance = float("inf")
@@ -1846,7 +1824,6 @@ class InRouteTest(Criterion):
 
             # If actor advanced a step, record the distance
             if self._current_index != closest_index:
-
                 new_dist = (
                     self._accum_meters[closest_index]
                     - self._accum_meters[self._current_index]
@@ -1955,7 +1932,6 @@ class RouteCompletionTest(Criterion):
             new_status = py_trees.common.Status.FAILURE
 
         elif self.test_status == "RUNNING" or self.test_status == "INIT":
-
             for index in range(
                 self._current_index,
                 min(self._current_index + self._wsize + 1, self._route_length),
@@ -2093,7 +2069,6 @@ class RunningRedLightTest(Criterion):
         tail_far_pt = location + carla.Location(tail_far_pt)
 
         for traffic_light, center, waypoints in self._list_traffic_lights:
-
             if self.debug:
                 z = 2.1
                 if traffic_light.state == carla.TrafficLightState.Red:
@@ -2130,7 +2105,6 @@ class RunningRedLightTest(Criterion):
                 continue
 
             for wp in waypoints:
-
                 tail_wp = self._map.get_waypoint(tail_far_pt)
 
                 # Calculate the dot product (Might be unscaled, as only its sign is important)
@@ -2168,7 +2142,6 @@ class RunningRedLightTest(Criterion):
                     if self.is_vehicle_crossing_line(
                         (tail_close_pt, tail_far_pt), (lft_lane_wp, rgt_lane_wp)
                     ):
-
                         self.test_status = "FAILURE"
                         self.actual_value += 1
                         location = traffic_light.get_transform().location

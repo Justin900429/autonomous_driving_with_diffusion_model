@@ -18,7 +18,6 @@ class LeaderboardEnv(CarlaMultiAgentEnv):
         weather_group,
         routes_group,
     ):
-
         all_tasks = self.build_all_tasks(carla_map, weather_group, routes_group)
         super().__init__(
             carla_map,

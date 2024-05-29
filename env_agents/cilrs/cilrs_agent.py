@@ -178,7 +178,6 @@ class CilrsAgent:
             v.clear()
 
     def learn(self, dataset_dir, train_epochs, reset_step=False):
-
         trainer_class = load_entry_point(self._train_cfg["entry_point"])
         if self._ckpt is None:
             trainer = trainer_class(self._policy, **self._train_cfg["kwargs"])

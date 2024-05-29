@@ -9,7 +9,6 @@ from imgaug import augmenters as iaa
 
 
 def hard(image_iteration):
-
     iteration = image_iteration / 32
     frequency_factor = min(0.05 + float(iteration) / 200000.0, 1.0)
     color_factor = min(float(iteration) / 1000000.0, 1.0)
@@ -82,7 +81,6 @@ def hard(image_iteration):
 
 
 def hard_1(image_iteration):
-
     iteration = image_iteration / 32
     frequency_factor = min(0.05 + float(iteration) / 200000.0, 1.0)
     color_factor = min(float(iteration) / 1000000.0, 1.0)

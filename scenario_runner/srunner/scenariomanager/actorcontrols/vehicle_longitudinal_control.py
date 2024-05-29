@@ -53,7 +53,7 @@ class VehicleLongitudinalControl(BasicControl):
         control = self._actor.get_control()
 
         velocity = self._actor.get_velocity()
-        current_speed = math.sqrt(velocity.x ** 2 + velocity.y ** 2)
+        current_speed = math.sqrt(velocity.x**2 + velocity.y**2)
         if current_speed < self._target_speed:
             control.throttle = 1.0
         else:

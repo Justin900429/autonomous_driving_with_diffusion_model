@@ -162,7 +162,7 @@ PIXELS_AHEAD_VEHICLE = 150
 
 def get_actor_display_name(actor, truncate=250):
     name = " ".join(actor.type_id.replace("_", ".").title().split(".")[1:])
-    return (name[: truncate - 1] + u"\u2026") if len(name) > truncate else name
+    return (name[: truncate - 1] + "\u2026") if len(name) > truncate else name
 
 
 class Util(object):
@@ -173,7 +173,7 @@ class Util(object):
 
     @staticmethod
     def length(v):
-        return math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)
+        return math.sqrt(v.x**2 + v.y**2 + v.z**2)
 
     @staticmethod
     def get_bounding_box(actor):
@@ -1109,7 +1109,7 @@ class ModuleWorld(object):
         if self.hero_actor is not None:
             hero_speed = self.hero_actor.get_velocity()
             hero_speed_text = 3.6 * math.sqrt(
-                hero_speed.x ** 2 + hero_speed.y ** 2 + hero_speed.z ** 2
+                hero_speed.x**2 + hero_speed.y**2 + hero_speed.z**2
             )
 
             affected_traffic_light_text = "None"
@@ -1233,13 +1233,11 @@ class ModuleWorld(object):
     def _render_speed_limits(
         self, surface, list_sl, world_to_pixel, world_to_pixel_width
     ):
-
         font_size = world_to_pixel_width(2)
         radius = world_to_pixel_width(2)
         font = pygame.font.SysFont("Arial", font_size)
 
         for sl in list_sl:
-
             x, y = world_to_pixel(sl.get_location())
 
             # Render speed limit
@@ -1285,7 +1283,6 @@ class ModuleWorld(object):
             pygame.draw.polygon(surface, color, corners)
 
     def _render_vehicles(self, surface, list_v, world_to_pixel):
-
         for v in list_v:
             color = COLOR_SKY_BLUE_0
             if int(v[0].attributes["number_of_wheels"]) == 2:
@@ -1399,7 +1396,6 @@ class ModuleWorld(object):
 
         center_offset = (0, 0)
         if self.hero_actor is not None:
-
             hero_location_screen = self.map_image.world_to_pixel(
                 self.hero_transform.location
             )

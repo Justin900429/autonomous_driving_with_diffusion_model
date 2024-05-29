@@ -223,7 +223,6 @@ class DynamicObjectCrossing(BasicScenario):
         )
 
     def _calculate_base_transform(self, _start_distance, waypoint):
-
         lane_width = waypoint.lane_width
 
         # Patches false junctions
@@ -251,7 +250,6 @@ class DynamicObjectCrossing(BasicScenario):
         )
 
     def _spawn_adversary(self, transform, orientation_yaw):
-
         self._time_to_reach *= self._num_lane_changes
 
         if self._adversary_type is False:
@@ -327,7 +325,6 @@ class DynamicObjectCrossing(BasicScenario):
                 waypoint = wp_next
 
         while True:  # We keep trying to spawn avoiding props
-
             try:
                 self.transform, orientation_yaw = self._calculate_base_transform(
                     _start_distance, waypoint

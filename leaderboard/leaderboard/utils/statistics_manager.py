@@ -101,7 +101,6 @@ class StatisticsManager(object):
                 self._registry_route_records.append(to_route_record(record))
 
     def set_route(self, route_id, index):
-
         self._master_scenario = None
         route_record = RouteRecord()
         route_record.route_id = route_id

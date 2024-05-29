@@ -175,7 +175,6 @@ class ControlLoss(BasicScenario):
             self.ego_vehicles[0], self.first_loc_prev, self._trigger_dist
         )
         for _ in range(self._no_of_jitter):
-
             # change the current noise to be applied
             turn = ChangeNoiseParameters(
                 self._current_steer_noise,

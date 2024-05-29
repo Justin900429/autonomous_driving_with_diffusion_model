@@ -153,7 +153,6 @@ class TrafficLightHandler:
                 continue
 
             for wp in TrafficLightHandler.list_stopline_wps[i]:
-
                 wp_dir = wp.transform.get_forward_vector()
                 dot_ve_wp = (
                     veh_dir.x * wp_dir.x + veh_dir.y * wp_dir.y + veh_dir.z * wp_dir.z

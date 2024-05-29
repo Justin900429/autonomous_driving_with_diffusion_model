@@ -88,7 +88,6 @@ class OutsideRouteLane:
             self._last_road_id != current_road_id
             or self._last_lane_id != current_lane_id
         ):
-
             # Route direction can be considered continuous, except after exiting a junction.
             if self._pre_ego_waypoint.is_junction:
                 # cast angle to [-180, +180)

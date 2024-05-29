@@ -914,7 +914,6 @@ class ActorTransformSetterToOSCPosition(AtomicBehavior):
         self._osc_transform = None
 
     def initialise(self):
-
         super(ActorTransformSetterToOSCPosition, self).initialise()
 
         if self._actor.is_alive:
@@ -1051,13 +1050,11 @@ class AccelerateToCatchUp(AtomicBehavior):
         self._initial_actor_pos = None
 
     def initialise(self):
-
         # get initial actor position
         self._initial_actor_pos = CarlaDataProvider.get_location(self._actor)
         super(AccelerateToCatchUp, self).initialise()
 
     def update(self):
-
         # get actor speed
         actor_speed = CarlaDataProvider.get_velocity(self._actor)
         target_speed = (
@@ -1800,7 +1797,7 @@ class WaypointFollower(AtomicBehavior):
                     if self._actor_dict[actor]:
                         location = self._actor_dict[actor][0]
                         direction = location - actor_location
-                        direction_norm = math.sqrt(direction.x ** 2 + direction.y ** 2)
+                        direction_norm = math.sqrt(direction.x**2 + direction.y**2)
                         control = actor.get_control()
                         control.speed = self._target_speed
                         control.direction = direction / direction_norm
@@ -1875,7 +1872,6 @@ class LaneChange(WaypointFollower):
         distance_lane_change=25,
         name="LaneChange",
     ):
-
         self._direction = direction
         self._distance_same_lane = distance_same_lane
         self._distance_other_lane = distance_other_lane
@@ -1888,7 +1884,6 @@ class LaneChange(WaypointFollower):
         super(LaneChange, self).__init__(actor, target_speed=speed, name=name)
 
     def initialise(self):
-
         # get start position
         position_actor = CarlaDataProvider.get_map().get_waypoint(
             self._actor.get_location()
@@ -1937,7 +1932,6 @@ class SetInitSpeed(AtomicBehavior):
     """
 
     def __init__(self, actor, init_speed=10, name="SetInitSpeed"):
-
         self._init_speed = init_speed
         self._terminate = None
         self._actor = actor
@@ -2409,12 +2403,10 @@ class TrafficLightManipulator(AtomicBehavior):
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
 
     def update(self):
-
         new_status = py_trees.common.Status.RUNNING
 
         # 1) Set up the parameters
         if self.current_step == 1:
-
             # Traffic light affecting the ego vehicle
             self.traffic_light = CarlaDataProvider.get_next_traffic_light(
                 self.ego_vehicle, use_cached_location=False
@@ -2445,7 +2437,6 @@ class TrafficLightManipulator(AtomicBehavior):
 
         # 2) Modify the ego lane to yellow when closeby
         elif self.current_step == 2:
-
             ego_location = CarlaDataProvider.get_location(self.ego_vehicle)
 
             if self.junction_location is None:
@@ -2473,7 +2464,6 @@ class TrafficLightManipulator(AtomicBehavior):
 
         # 3) Modify the ego lane to red and the chosen one to green after several seconds
         elif self.current_step == 3:
-
             if self.passed_enough_time(self.YELLOW_TIME):
                 _ = self.set_intersection_state(
                     self.CONFIG_TLM_TRANSLATION[self.configuration][0]
@@ -2483,7 +2473,6 @@ class TrafficLightManipulator(AtomicBehavior):
 
         # 4) Wait a bit to let vehicles enter the intersection, then set the ego lane to green
         elif self.current_step == 4:
-
             # Get the time in red, dependent on the intersection dimensions
             if self.waiting_time is None:
                 self.waiting_time = self.get_waiting_time(
@@ -2708,7 +2697,6 @@ class ScenarioTriggerer(AtomicBehavior):
         # Check which scenarios can be triggered
         blackboard = py_trees.blackboard.Blackboard()
         for black_var_name, scen_location in self._blackboard_list:
-
             # Close enough
             scen_distance = route_location.distance(scen_location)
             condition1 = bool(scen_distance < self._distance)

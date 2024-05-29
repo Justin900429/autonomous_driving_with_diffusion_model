@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 
 class CilrsDataset(Dataset):
     def __init__(self, list_expert_h5, list_dagger_h5, env_wrapper, im_augmenter=None):
-
         self._env_wrapper = env_wrapper
         self._im_augmenter = im_augmenter
         self._batch_read_number = 0
@@ -91,7 +90,6 @@ class CilrsDataset(Dataset):
         return len(self._obs_list)
 
     def __getitem__(self, idx):
-
         obs = copy.deepcopy(self._obs_list[idx])
 
         # load images/large dataset here
@@ -134,7 +132,6 @@ def get_dataloader(
     dataset_dir, env_wrapper, im_augmentation, batch_size=32, num_workers=8
 ):
     def make_dataset(list_expert_h5, list_dagger_h5, is_train):
-
         if is_train and (im_augmentation is not None):
             im_augmenter = getattr(augmenter, im_augmentation)
         else:

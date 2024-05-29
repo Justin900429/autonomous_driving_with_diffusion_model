@@ -42,7 +42,6 @@ class ObsManager(ObsManagerBase):
         self._map = parent_actor.vehicle.get_world().get_map()
 
     def get_observation(self):
-
         actor_transform = self._parent_actor.vehicle.get_transform()
 
         actor_location = [

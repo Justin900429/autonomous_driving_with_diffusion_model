@@ -166,8 +166,7 @@ class KeyboardControl(object):
 
         # Get the mode
         if path_to_conf_file:
-
-            with (open(path_to_conf_file, "r")) as f:
+            with open(path_to_conf_file, "r") as f:
                 lines = f.read().split("\n")
                 self._mode = lines[0].split(" ")[1]
                 self._endpoint = lines[1].split(" ")[1]
@@ -191,7 +190,6 @@ class KeyboardControl(object):
             self._endpoint = None
 
     def _json_to_control(self):
-
         # transform strs into VehicleControl commands
         for entry in self._records["records"]:
             control = carla.VehicleControl(
@@ -253,7 +251,6 @@ class KeyboardControl(object):
         self._control.hand_brake = keys[K_SPACE]
 
     def _parse_json_control(self):
-
         if self._index < len(self._control_list):
             self._control = self._control_list[self._index]
             self._index += 1

@@ -3,7 +3,6 @@ import numpy as np
 
 class ZombieWalker(object):
     def __init__(self, walker_id, controller_id, world):
-
         self._walker = world.get_actor(walker_id)
         self._controller = world.get_actor(controller_id)
 

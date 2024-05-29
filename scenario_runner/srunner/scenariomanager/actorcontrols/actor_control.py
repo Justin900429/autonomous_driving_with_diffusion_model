@@ -61,7 +61,6 @@ class ActorControl(object):
     _last_waypoint_command = None
 
     def __init__(self, actor, control_py_module, args):
-
         # use importlib to import the control module
         if not control_py_module:
             if isinstance(actor, carla.Walker):

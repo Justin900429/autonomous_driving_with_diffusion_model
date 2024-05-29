@@ -29,7 +29,6 @@ class LocalPlanner(object):
         threshold_before=7.5,
         threshold_after=5.0,
     ):
-
         self._target_speed = target_speed
         self._speed_pid = PIDController(longitudinal_pid_params)
         self._turn_pid = PIDController(lateral_pid_params)

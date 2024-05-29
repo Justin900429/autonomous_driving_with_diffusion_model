@@ -154,7 +154,6 @@ class ScenarioRunner(object):
         scenarios_list.append(self._args.additionalScenario)
 
         for scenario_file in scenarios_list:
-
             # Get their module
             module_name = os.path.basename(scenario_file).split(".")[0]
             sys.path.insert(0, os.path.dirname(scenario_file))
@@ -288,10 +287,8 @@ class ScenarioRunner(object):
 
         # Filter the attributes that aren't JSON serializable
         with open("temp.json", "w") as fp:
-
             criteria_dict = {}
             for criterion in criteria:
-
                 criterion_dict = criterion.__dict__
                 criteria_dict[criterion.name] = {}
 

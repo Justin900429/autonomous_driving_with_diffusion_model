@@ -15,7 +15,6 @@ class LeaderboardDagger(object):
         self._max_time = max_time  # in sec
 
     def get(self, timestamp):
-
         info_criteria = self._ego_vehicle.info_criteria
 
         # Done condition 1: blocked

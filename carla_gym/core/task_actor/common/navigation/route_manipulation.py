@@ -21,7 +21,6 @@ EARTH_RADIUS_EQUA = 6378137.0
 
 
 def location_to_gps(location):
-
     lon = location.x * 180.0 / (math.pi * EARTH_RADIUS_EQUA)
     lat = 360.0 * math.atan(math.exp(-location.y / EARTH_RADIUS_EQUA)) / math.pi - 90.0
     z = location.z

@@ -35,7 +35,6 @@ class Trainer:
         starting_epoch=0,
         im_augmentation=None,
     ):
-
         self._init_kwargs = copy.deepcopy(locals())
         del self._init_kwargs["self"]
         del self._init_kwargs["policy"]
@@ -228,7 +227,6 @@ class Trainer:
         value_losses = []
         features_losses = []
         for command, policy_input, supervision in dataset:
-
             policy_input = dict(
                 [(k, th.as_tensor(v).to(self.device)) for k, v in policy_input.items()]
             )

@@ -61,7 +61,7 @@ class PedestrianControl(BasicControl):
             self._reached_goal = False
             location = self._waypoints[0].location
             direction = location - self._actor.get_location()
-            direction_norm = math.sqrt(direction.x ** 2 + direction.y ** 2)
+            direction_norm = math.sqrt(direction.x**2 + direction.y**2)
             control.direction = direction / direction_norm
             self._actor.apply_control(control)
             if direction_norm < 1.0:

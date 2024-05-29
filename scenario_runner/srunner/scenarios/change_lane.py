@@ -100,7 +100,6 @@ class ChangeLane(BasicScenario):
             self._slow_vehicle_velocity = random.randint(1, 6)
 
     def _initialize_actors(self, config):
-
         # add actors from xml file
         for actor in config.other_actors:
             vehicle = CarlaDataProvider.request_new_actor(actor.model, actor.transform)
@@ -136,7 +135,6 @@ class ChangeLane(BasicScenario):
         )
 
     def _create_behavior(self):
-
         # sequence vw
         # make visible
         sequence_vw = py_trees.composites.Sequence("VW T2")

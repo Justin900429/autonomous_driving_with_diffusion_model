@@ -9,8 +9,8 @@ from carla_gym.utils import config_utils
 from utils import server_utils
 
 
-def create_env(cfg: DictConfig):
-    set_random_seed(cfg.seed, using_cuda=True)
+def create_env(cfg: DictConfig, seed=None):
+    set_random_seed(cfg.seed if seed is None else seed, using_cuda=True)
 
     os.environ["CARLA_API_PATH"] = os.path.join(
         os.path.dirname(cfg.carla_sh_path), "PythonAPI/carla/"
@@ -38,7 +38,7 @@ def create_env(cfg: DictConfig):
 
     config_utils.check_h5_maps(cfg.train_envs, obs_configs, cfg.carla_sh_path)
 
-    def env_maker(config):
+    def env_maker(config, seed=None):
         print(f'making port {config["port"]}')
         env = gym.make(
             config["env_id"],
@@ -47,7 +47,7 @@ def create_env(cfg: DictConfig):
             terminal_configs=terminal_configs,
             host="localhost",
             port=config["port"],
-            seed=cfg.seed,
+            seed=cfg.seed if seed is None else seed,
             no_rendering=False,
             **config["env_configs"],
         )
@@ -57,14 +57,14 @@ def create_env(cfg: DictConfig):
     if cfg.dummy or len(server_manager.env_configs) == 1:
         env = DummyVecEnv(
             [
-                lambda config=config: env_maker(config)
+                lambda config=config: env_maker(config, seed)
                 for config in server_manager.env_configs
             ]
         )
     else:
         env = SubprocVecEnv(
             [
-                lambda config=config: env_maker(config)
+                lambda config=config: env_maker(config, seed)
                 for config in server_manager.env_configs
             ]
         )

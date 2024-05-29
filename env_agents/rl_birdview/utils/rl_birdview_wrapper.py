@@ -215,7 +215,6 @@ class RlBirdviewWrapper(gym.Wrapper):
 
     @staticmethod
     def process_obs(obs, input_states, train=True):
-
         state_list = []
         if "speed" in input_states:
             state_list.append(obs["speed"]["speed_xy"])

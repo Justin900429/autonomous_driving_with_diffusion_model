@@ -40,7 +40,6 @@ class DistanceToLaneCenter(BasicMetric):
 
         # Get the projected distance vector to the center of the lane
         for i in range(start, end + 1):
-
             ego_location = log.get_actor_transform(ego_id, i).location
             ego_waypoint = town_map.get_waypoint(ego_location)
 

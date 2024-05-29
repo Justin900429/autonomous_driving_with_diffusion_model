@@ -480,7 +480,6 @@ class OpenScenarioParser(object):
             or (position.find("RelativeObjectPosition") is not None)
             or (position.find("RelativeLanePosition") is not None)
         ):
-
             if position.find("RelativeWorldPosition") is not None:
                 rel_pos = position.find("RelativeWorldPosition")
             if position.find("RelativeObjectPosition") is not None:
@@ -678,7 +677,6 @@ class OpenScenarioParser(object):
             delay_atomic = TimeOut(delay)
 
         if condition.find("ByEntityCondition") is not None:
-
             trigger_actor = (
                 None  # A-priori validation ensures that this will be not None
             )
@@ -712,7 +710,6 @@ class OpenScenarioParser(object):
                         name=condition_name,
                     )
                 elif entity_condition.find("CollisionCondition") is not None:
-
                     collision_condition = entity_condition.find("CollisionCondition")
 
                     if collision_condition.find("EntityRef") is not None:

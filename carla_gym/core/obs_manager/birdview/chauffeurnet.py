@@ -323,7 +323,6 @@ class ObsManager(ObsManagerBase):
     def _get_mask_from_actor_list(self, actor_list, M_warp):
         mask = np.zeros([self._width, self._width], dtype=np.uint8)
         for actor_transform, bb_loc, bb_ext in actor_list:
-
             corners = [
                 carla.Location(x=-bb_ext.x, y=-bb_ext.y),
                 carla.Location(x=bb_ext.x, y=-bb_ext.y),

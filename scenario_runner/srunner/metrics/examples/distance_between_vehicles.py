@@ -48,7 +48,6 @@ class DistanceBetweenVehicles(BasicMetric):
 
         # Get the distance between the two
         for i in range(start, end):
-
             # Get the transforms
             ego_location = log.get_actor_transform(ego_id, i).location
             adv_location = log.get_actor_transform(adv_id, i).location

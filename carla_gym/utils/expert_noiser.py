@@ -3,14 +3,12 @@ import random
 
 
 class ExpertNoiser(object):
-
     # define frequency into noise events per minute
     # define the amount_of_time of setting the noise
 
     def __init__(
         self, noise_type, frequency=15, intensity=10, min_noise_time_amount=2.0
     ):
-
         # self.variable_type = variable
         self.noise_type = noise_type
         self.frequency = frequency
@@ -28,9 +26,7 @@ class ExpertNoiser(object):
         self.current_noise_mean = 0
 
     def set_noise(self):
-
         if self.noise_type == "Spike" or self.noise_type == "Throttle":
-
             # flip between positive and negative
             coin = random.randint(0, 1)
             if coin == 0:  # negative
@@ -39,17 +35,14 @@ class ExpertNoiser(object):
                 self.current_noise_mean = -0.001  # random.gauss(0.05,0.02)
 
     def get_noise(self):
-
         if self.noise_type == "Spike" or self.noise_type == "Throttle":
             if self.current_noise_mean > 0:
-
                 return min(
                     0.55,
                     self.current_noise_mean
                     + (time.time() - self.noise_start_time) * 0.03 * self.intensity,
                 )
             else:
-
                 return max(
                     -0.55,
                     self.current_noise_mean
@@ -77,7 +70,6 @@ class ExpertNoiser(object):
                 )
 
     def is_time_for_noise(self, steer):
-
         # Count Seconds
         second_passed = False
         if time.time() - self.second_counter >= 1.0:
@@ -130,13 +122,11 @@ class ExpertNoiser(object):
         self.noise_being_set = noise_exist
 
     def compute_noise(self, action, speed):
-
         # noisy_action = action
         if self.noise_type == "None":
             return action, False, False
 
         if self.noise_type == "Spike":
-
             if self.is_time_for_noise(action.steer):
                 steer = action.steer
 
@@ -178,7 +168,6 @@ class ExpertNoiser(object):
                         brake_noisy = max(min(brake_noisy + -noise, 1), 0)
 
                 else:
-
                     # print(" Throttle noise ", self.get_noise())
                     noise = self.get_noise()
                     if noise > 0:

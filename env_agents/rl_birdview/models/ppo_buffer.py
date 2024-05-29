@@ -42,7 +42,6 @@ class PpoBuffer:
         gamma: float = 0.99,
         n_envs: int = 1,
     ):
-
         self.buffer_size = buffer_size
         self.observation_space = observation_space
         self.action_space = action_space
@@ -137,7 +136,6 @@ class PpoBuffer:
         sigma: np.ndarray,
         infos,
     ) -> None:
-
         for k, v in obs_dict.items():
             self.observations[k][self.pos] = v
         self.actions[self.pos] = action
@@ -250,7 +248,6 @@ class PpoBuffer:
         for i in range(self.buffer_size):
             im_envs = []
             for j in range(self.n_envs):
-
                 masks = self.observations["birdview"][i, j, vis_idx, :, :] > 100
 
                 im_birdview = np.zeros([h, w, 3], dtype=np.uint8)

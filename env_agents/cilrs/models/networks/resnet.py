@@ -55,7 +55,6 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
     def __init__(self, block, layers, input_shape, num_classes=1000):
-
         im_channels, im_h, im_w = input_shape
 
         self.inplanes = 64

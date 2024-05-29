@@ -20,7 +20,6 @@ class PpoPolicy(nn.Module):
         distribution_entry_point=None,
         distribution_kwargs={},
     ):
-
         super(PpoPolicy, self).__init__()
         self.observation_space = observation_space
         self.action_space = action_space

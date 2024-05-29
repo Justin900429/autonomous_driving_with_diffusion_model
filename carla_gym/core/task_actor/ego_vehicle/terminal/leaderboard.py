@@ -4,7 +4,6 @@ class Leaderboard(object):
         self._max_time = max_time  # in sec
 
     def get(self, timestamp):
-
         info_criteria = self._ego_vehicle.info_criteria
         # Done condition 1: route completed
         c_route = info_criteria["route_completion"]["is_route_completed"]

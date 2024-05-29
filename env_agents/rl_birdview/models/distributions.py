@@ -215,7 +215,6 @@ class BetaDistribution:
             self.device = "cpu"
 
     def proba_distribution_net(self, latent_dim: int) -> Tuple[nn.Module, nn.Module]:
-
         linear_alpha = nn.Linear(latent_dim, self.action_dim)
         linear_beta = nn.Linear(latent_dim, self.action_dim)
 

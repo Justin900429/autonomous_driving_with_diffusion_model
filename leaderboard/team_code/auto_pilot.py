@@ -96,7 +96,6 @@ def check_episode_has_noise(lat_noise_percent, long_noise_percent):
 
 
 class AutoPilot(MapAgent):
-
     # for stop signs
     PROXIMITY_THRESHOLD = 30.0  # meters
     SPEED_THRESHOLD = 0.1

@@ -249,7 +249,6 @@ class SensorInterface(object):
         try:
             data_dict = {}
             while len(data_dict.keys()) < len(self._sensors_objects.keys()):
-
                 # Don't wait for the opendrive sensor
                 if (
                     self._opendrive_tag
