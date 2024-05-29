@@ -61,6 +61,7 @@ class EgoVehicleHandler(object):
         endless_config = task_config.get("endless")
         set_camera = False
         ev_spawn_locations = []
+                
         for ev_id in actor_config:
             bp_filter = actor_config[ev_id]["model"]
             try:
@@ -143,6 +144,13 @@ class EgoVehicleHandler(object):
                         life_time=-1,
                         persistent_lines=True,
                     )
+                    
+        list_actor = self._world.get_actors()
+        for actor_ in list_actor:
+            if isinstance(actor_, carla.TrafficLight):
+                actor_.set_green_time(5.0)
+                actor_.set_red_time(5.0)
+                actor_.set_yellow_time(2.0)
 
         return ev_spawn_locations
 
