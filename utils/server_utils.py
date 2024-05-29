@@ -49,10 +49,10 @@ class CarlaServerManager:
             log.info(cmd)
             # log_file = self._root_save_dir / f'server_{cfg["port"]}.log'
             # server_process = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid, stdout=open(log_file, "w"))
-            server_process = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
+            subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
         time.sleep(self._t_sleep)
 
     def stop(self):
         kill_carla()
         time.sleep(self._t_sleep)
-        log.info(f"Kill Carla Servers!")
+        log.info("Kill Carla Servers!")
