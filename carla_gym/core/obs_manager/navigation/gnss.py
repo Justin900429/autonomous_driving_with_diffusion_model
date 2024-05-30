@@ -1,12 +1,13 @@
-import numpy as np
 import weakref
-import carla
-from gym import spaces
-from queue import Queue, Empty
+from queue import Empty, Queue
 
-from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
-import carla_gym.utils.transforms as trans_utils
+import carla
+import numpy as np
+from gymnasium import spaces
+
 import carla_gym.core.task_actor.common.navigation.route_manipulation as gps_util
+import carla_gym.utils.transforms as trans_utils
+from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 from carla_gym.core.task_actor.common.navigation.map_utils import RoadOption
 
 

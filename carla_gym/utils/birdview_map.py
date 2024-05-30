@@ -1,16 +1,17 @@
-import carla
-import pygame
-import numpy as np
-import h5py
-from pathlib import Path
-import os
 import argparse
-import time
+import os
 import subprocess
+import time
+from pathlib import Path
+
+import carla
+import h5py
+import numpy as np
+import pygame
 from omegaconf import OmegaConf
 
 from carla_gym.utils.traffic_light import TrafficLightHandler
-from utils.server_utils import CarlaServerManager
+from misc.server_utils import CarlaServerManager
 
 COLOR_WHITE = (255, 255, 255)
 

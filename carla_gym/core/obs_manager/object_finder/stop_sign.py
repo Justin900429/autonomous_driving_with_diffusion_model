@@ -1,5 +1,6 @@
-from gym import spaces
 import carla
+from gymnasium import spaces
+
 from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 
 

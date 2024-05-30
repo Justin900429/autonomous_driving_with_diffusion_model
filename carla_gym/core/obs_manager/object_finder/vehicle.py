@@ -1,9 +1,8 @@
 import numpy as np
-import carla
-from gym import spaces
-from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
+from gymnasium import spaces
 
 import carla_gym.utils.transforms as trans_utils
+from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 
 
 class ObsManager(ObsManagerBase):
@@ -58,7 +57,7 @@ class ObsManager(ObsManagerBase):
                     low=0,
                     high=5000,
                     shape=(self._max_detection_number, 1),
-                    dtype=np.int8,
+                    dtype=np.int16,
                 ),
                 "lane_id": spaces.Box(
                     low=-20,

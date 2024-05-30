@@ -1,6 +1,6 @@
 import carla
 import cv2
-import gym
+import gymnasium as gym
 import numpy as np
 
 eval_num_zombie_vehicles = {
@@ -23,8 +23,8 @@ eval_num_zombie_walkers = {
 
 class RlCameraWrapper(gym.Wrapper):
     def __init__(self, env, input_states=[], acc_as_action=False):
-        assert len(env._obs_configs) == 1
-        self._ev_id = list(env._obs_configs.keys())[0]
+        assert len(env.unwrapped.obs_configs) == 1
+        self._ev_id = list(env.unwrapped.obs_configs.keys())[0]
         self._input_states = input_states
         self._acc_as_action = acc_as_action
         self._render_dict = {}
@@ -88,25 +88,25 @@ class RlCameraWrapper(gym.Wrapper):
 
         self.eval_mode = False
 
-    def reset(self):
-        self.env.set_task_idx(np.random.choice(self.env.num_tasks))
+    def reset(self, seed=None, **options):
+        self.env.unwrapped.set_task_idx(np.random.choice(self.env.unwrapped.num_tasks))
         if self.eval_mode:
-            self.env._task["num_zombie_vehicles"] = eval_num_zombie_vehicles[self.env._carla_map]
-            self.env._task["num_zombie_walkers"] = eval_num_zombie_walkers[self.env._carla_map]
-            for ev_id in self.env._ev_handler._terminal_configs:
-                self.env._ev_handler._terminal_configs[ev_id]["kwargs"]["eval_mode"] = True
+            self.env.unwrapped.task["num_zombie_vehicles"] = eval_num_zombie_vehicles[self.env.carla_map]
+            self.env.unwrapped.task["num_zombie_walkers"] = eval_num_zombie_walkers[self.env.carla_map]
+            for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
+                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"]["eval_mode"] = True
         else:
-            for ev_id in self.env._ev_handler._terminal_configs:
-                self.env._ev_handler._terminal_configs[ev_id]["kwargs"]["eval_mode"] = False
+            for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
+                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"]["eval_mode"] = False
 
-        obs_ma = self.env.reset()
+        obs_ma, info_dict = self.env.reset(seed=seed, options=options)
         action_ma = {self._ev_id: carla.VehicleControl(manual_gear_shift=True, gear=1)}
-        obs_ma, _, _, _ = self.env.step(action_ma)
+        obs_ma, *_ = self.env.step(action_ma)
         action_ma = {self._ev_id: carla.VehicleControl(manual_gear_shift=False)}
-        obs_ma, _, _, _ = self.env.step(action_ma)
+        obs_ma, *_ = self.env.step(action_ma)
 
-        snap_shot = self.env._world.get_snapshot()
-        self.env._timestamp = {
+        snap_shot = self.env.unwrapped.world.get_snapshot()
+        self.env.unwrapped.set_timestamp({
             "step": 0,
             "frame": 0,
             "relative_wall_time": 0.0,
@@ -116,19 +116,19 @@ class RlCameraWrapper(gym.Wrapper):
             "start_frame": snap_shot.timestamp.frame,
             "start_wall_time": snap_shot.timestamp.platform_timestamp,
             "start_simulation_time": snap_shot.timestamp.elapsed_seconds,
-        }
+        })
 
         obs = self.process_obs(obs_ma[self._ev_id], self._input_states)
 
         self._render_dict["prev_obs"] = obs
         self._render_dict["prev_im_render"] = obs_ma[self._ev_id]["camera"]["data"]
         self._render_dict["prev_bev_render"] = obs_ma[self._ev_id]["camera"]["bev_data"]
-        return obs
+        return obs, info_dict
 
     def step(self, action):
         action_ma = {self._ev_id: self.process_act(action, self._acc_as_action)}
 
-        obs_ma, reward_ma, done_ma, info_ma = self.env.step(action_ma)
+        obs_ma, reward_ma, done_ma, _, info_ma = self.env.step(action_ma)
 
         obs = self.process_obs(obs_ma[self._ev_id], self._input_states)
         reward = reward_ma[self._ev_id]
@@ -136,7 +136,7 @@ class RlCameraWrapper(gym.Wrapper):
         info = info_ma[self._ev_id]
 
         self._render_dict = {
-            "timestamp": self.env.timestamp,
+            "timestamp": self.env.unwrapped.timestamp,
             "obs": self._render_dict["prev_obs"],
             "prev_obs": obs,
             "im_render": self._render_dict["prev_im_render"],
@@ -146,7 +146,7 @@ class RlCameraWrapper(gym.Wrapper):
             "reward_debug": info["reward_debug"],
             "terminal_debug": info["terminal_debug"],
         }
-        return obs, reward, done, info
+        return obs, reward, done, {}, info
 
     def render(self, mode="human"):
         """

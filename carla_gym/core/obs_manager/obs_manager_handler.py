@@ -1,6 +1,6 @@
 from importlib import import_module
 
-from gym import spaces
+from gymnasium import spaces
 
 
 class ObsManagerHandler(object):

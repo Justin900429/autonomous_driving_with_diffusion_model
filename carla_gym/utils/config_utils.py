@@ -6,7 +6,6 @@ from pathlib import Path
 
 import carla
 import h5py
-import hydra
 import numpy as np
 
 

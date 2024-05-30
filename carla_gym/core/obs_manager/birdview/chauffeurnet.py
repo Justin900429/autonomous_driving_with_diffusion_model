@@ -1,14 +1,14 @@
-import numpy as np
-import carla
-from gym import spaces
-import cv2 as cv
 from collections import deque
 from pathlib import Path
+
+import carla
+import cv2 as cv
 import h5py
+import numpy as np
+from gymnasium import spaces
 
 from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 from carla_gym.utils.traffic_light import TrafficLightHandler
-
 
 COLOR_BLACK = (0, 0, 0)
 COLOR_RED = (255, 0, 0)

@@ -1,5 +1,6 @@
 from pathlib import Path
-from gym.envs.registration import register
+
+from gymnasium.envs.registration import register
 
 # CARLA_GYM_ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 CARLA_GYM_ROOT_DIR = Path(__file__).resolve().parent

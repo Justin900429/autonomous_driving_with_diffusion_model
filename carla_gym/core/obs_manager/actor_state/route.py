@@ -1,8 +1,8 @@
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
-from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 import carla_gym.utils.transforms as trans_utils
+from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 
 
 class ObsManager(ObsManagerBase):

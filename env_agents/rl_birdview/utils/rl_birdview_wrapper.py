@@ -1,7 +1,7 @@
-import gym
-import numpy as np
-import cv2
 import carla
+import cv2
+import gymnasium as gym
+import numpy as np
 
 eval_num_zombie_vehicles = {
     "Town01": 120,
@@ -84,21 +84,21 @@ class RlBirdviewWrapper(gym.Wrapper):
         self.eval_mode = False
 
     def reset(self):
-        self.env.set_task_idx(np.random.choice(self.env.num_tasks))
+        self.env.unwrapped.set_task_idx(np.random.choice(self.env.unwrapped.num_tasks))
         if self.eval_mode:
-            self.env._task["num_zombie_vehicles"] = eval_num_zombie_vehicles[
+            self.env.unwrapped.task["num_zombie_vehicles"] = eval_num_zombie_vehicles[
                 self.env._carla_map
             ]
-            self.env._task["num_zombie_walkers"] = eval_num_zombie_walkers[
-                self.env._carla_map
+            self.env.unwrapped.task["num_zombie_walkers"] = eval_num_zombie_walkers[
+                self.env.unwrapped.carla_map
             ]
-            for ev_id in self.env._ev_handler._terminal_configs:
-                self.env._ev_handler._terminal_configs[ev_id]["kwargs"][
+            for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
+                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"][
                     "eval_mode"
                 ] = True
         else:
-            for ev_id in self.env._ev_handler._terminal_configs:
-                self.env._ev_handler._terminal_configs[ev_id]["kwargs"][
+            for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
+                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"][
                     "eval_mode"
                 ] = False
 
@@ -108,8 +108,8 @@ class RlBirdviewWrapper(gym.Wrapper):
         action_ma = {self._ev_id: carla.VehicleControl(manual_gear_shift=False)}
         obs_ma, _, _, _ = self.env.step(action_ma)
 
-        snap_shot = self.env._world.get_snapshot()
-        self.env._timestamp = {
+        snap_shot = self.env.unwrapped.world.get_snapshot()
+        self.env.unwrapped.set_timestamp({
             "step": 0,
             "frame": 0,
             "relative_wall_time": 0.0,
@@ -119,7 +119,7 @@ class RlBirdviewWrapper(gym.Wrapper):
             "start_frame": snap_shot.timestamp.frame,
             "start_wall_time": snap_shot.timestamp.platform_timestamp,
             "start_simulation_time": snap_shot.timestamp.elapsed_seconds,
-        }
+        })
 
         obs = self.process_obs(obs_ma[self._ev_id], self._input_states)
 

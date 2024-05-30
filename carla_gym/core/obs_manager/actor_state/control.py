@@ -1,5 +1,5 @@
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 from carla_gym.core.obs_manager.obs_manager import ObsManagerBase
 
