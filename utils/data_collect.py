@@ -15,17 +15,16 @@ from env_agents import create_env
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Data Collection")
-    parser.add_argument(
-        "--save-path", default="data", type=str, help="Path to save the data"
-    )
+    parser.add_argument("--save-path", default="data", type=str, help="Path to save the data")
     parser.add_argument(
         "--config-path", default="train_rl", type=str, help="Path to the config file"
     )
+    parser.add_argument("--save-num", default=5000, type=int, help="The number of data to save")
     parser.add_argument(
-        "--save-num", default=5000, type=int, help="The number of data to save"
-    )
-    parser.add_argument(
-        "--off-screen", default=True, type=bool, help="Run the simulation off-screen", default=False
+        "--off-screen",
+        default=False,
+        action="store_true",
+        help="Run the simulation off-screen",
     )
     return parser.parse_args()
 
@@ -74,15 +73,17 @@ class Agent:
 
         while self.cur_save < self.total_to_save:
             input_control = {0: None}
-            state, *_ = self.env.step(input_control)
+            state, _, done, *_ = self.env.step(input_control)
             cur_pos = state["cur_waypoint"][0]
             camera = state["camera"][0]
             bev = state["bev"][0]
 
+            if done:
+                cur_traj.clear()
+                continue
+
             if len(cur_traj) == 0:
-                save_front_path = os.path.join(
-                    self.save_root, "front", f"{self.cur_save:06d}.png"
-                )
+                save_front_path = os.path.join(self.save_root, "front", f"{self.cur_save:06d}.png")
                 Image.fromarray(camera).save(save_front_path)
                 target_bev = bev
                 init_compass = state["compass"][0]
@@ -90,9 +91,7 @@ class Agent:
             cur_traj.append(cur_pos)
 
             if len(cur_traj) == self.tota_frame_should_pass:
-                save_bev_path = os.path.join(
-                    self.save_root, "bev", f"{self.cur_save:06d}.png"
-                )
+                save_bev_path = os.path.join(self.save_root, "bev", f"{self.cur_save:06d}.png")
                 added_traj = []
                 for traj in cur_traj:
                     theta = init_compass + np.pi / 2
@@ -102,28 +101,23 @@ class Agent:
                             [np.sin(theta), np.cos(theta)],
                         ]
                     )
-                    traj = np.array(
-                        [traj[0] - cur_traj[0][0], traj[1] - cur_traj[0][1]]
-                    )
+                    traj = np.array([traj[0] - cur_traj[0][0], traj[1] - cur_traj[0][1]])
                     traj = R.T.dot(traj).reshape(-1)
                     pixel_x = way_point_to_pixel(traj[1])
                     pixel_y = way_point_to_pixel(-traj[0])
                     target_bev = cv2.circle(
                         target_bev, (int(pixel_x), int(pixel_y)), 3, (0, 255, 0), -1
                     )
-                    added_traj.append(
-                        (traj[1] / self.magic_number, -traj[0] / self.magic_number)
-                    )
-                big_record.append(
-                    {"traj": added_traj, "image": f"{self.cur_save:06d}.png"}
-                )
+                    added_traj.append((traj[1] / self.magic_number, -traj[0] / self.magic_number))
+                big_record.append({"traj": added_traj, "image": f"{self.cur_save:06d}.png"})
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1
-                
+
             while buffer_frame < 50:
                 state, *_ = self.env.step(input_control)
                 buffer_frame += 1
+            buffer_frame = 0
 
         with open(os.path.join(self.save_root, "waypoint.json"), "w") as f:
             json.dump(big_record, f)
