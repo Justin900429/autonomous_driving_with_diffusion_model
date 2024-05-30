@@ -8,6 +8,8 @@ Please ensure you have installed the Carla simulator and the Python API.
 git clone https://github.com/Justin900429/carla_diffusion.git
 conda env create -f environment.yml
 conda activate cat
+# setup the python path
+export PYTHONPATH=$PYTHONPATH:${pwd}
 ```
 
 Modify the `carla_sh_path` in `config/train_rl.yaml` to yours.
