@@ -47,10 +47,9 @@ class TemporalMapUnet(nn.Module):
     def __init__(
         self,
         horizon,
-        cond_dim,
         transition_dim=2,
         attention=False,
-        dim=32,
+        dim=128,
         dim_mults=(1, 2, 4, 8),
         diffuser_building_block="concat",
     ):
@@ -67,9 +66,7 @@ class TemporalMapUnet(nn.Module):
 
         time_dim = dim
         self.perception = resnet34(pretrained=True)
-        self.perception.fc = nn.Linear(
-            self.perception.fc.in_features, time_dim
-        )
+        self.perception.fc = nn.Linear(self.perception.fc.in_features, time_dim)
 
         self.time_mlp = nn.Sequential(
             SinusoidalPosEmb(time_dim),
@@ -78,7 +75,7 @@ class TemporalMapUnet(nn.Module):
             nn.Linear(time_dim * 4, time_dim),
         )
 
-        cond_dim = cond_dim + time_dim
+        cond_dim = time_dim + time_dim
 
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
@@ -91,10 +88,10 @@ class TemporalMapUnet(nn.Module):
                 nn.ModuleList(
                     [
                         ResidualTemporalMapBlock(
-                            dim_in, dim_out, time_embed_dim=cond_dim, horizon=horizon
+                            dim_in, dim_out, embed_dim=cond_dim,
                         ),
                         ResidualTemporalMapBlock(
-                            dim_out, dim_out, time_embed_dim=cond_dim, horizon=horizon
+                            dim_out, dim_out, embed_dim=cond_dim,
                         ),
                         Residual(PreNorm(dim_out, LinearAttention(dim_out)))
                         if attention
@@ -109,7 +106,7 @@ class TemporalMapUnet(nn.Module):
 
         mid_dim = dims[-1]
         self.mid_block1 = ResidualTemporalMapBlock(
-            mid_dim, mid_dim, time_embed_dim=cond_dim, horizon=horizon
+            mid_dim, mid_dim, embed_dim=cond_dim,
         )
         self.mid_attn = (
             Residual(PreNorm(mid_dim, LinearAttention(mid_dim)))
@@ -117,7 +114,7 @@ class TemporalMapUnet(nn.Module):
             else nn.Identity()
         )
         self.mid_block2 = ResidualTemporalMapBlock(
-            mid_dim, mid_dim, time_embed_dim=cond_dim, horizon=horizon
+            mid_dim, mid_dim, embed_dim=cond_dim,
         )
 
         final_up_dim = None
@@ -130,11 +127,10 @@ class TemporalMapUnet(nn.Module):
                         ResidualTemporalMapBlock(
                             dim_out * 2,
                             dim_in,
-                            time_embed_dim=cond_dim,
-                            horizon=horizon,
+                            embed_dim=cond_dim,
                         ),
                         ResidualTemporalMapBlock(
-                            dim_in, dim_in, time_embed_dim=cond_dim, horizon=horizon
+                            dim_in, dim_in, embed_dim=cond_dim,
                         ),
                         Residual(PreNorm(dim_out, LinearAttention(dim_out)))
                         if attention
@@ -184,3 +180,15 @@ class TemporalMapUnet(nn.Module):
         x = self.final_conv(x)
         x = einops.rearrange(x, "b t h -> b h t")
         return x
+
+
+def build_model(cfg) -> TemporalMapUnet:
+    model = TemporalMapUnet(
+        horizon=cfg.MODEL.HORIZON,
+        transition_dim=cfg.MODEL.TRANSITION_DIM,
+        attention=cfg.MODEL.USE_ATTN,
+        dim=cfg.MODEL.DIM,
+        dim_mults=cfg.MODEL.DIM_MULTS,
+        diffuser_building_block=cfg.MODEL.DIFFUSER_BUILDING_BLOCK,
+    )
+    return model
