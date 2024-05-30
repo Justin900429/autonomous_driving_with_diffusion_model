@@ -39,7 +39,6 @@ def create_cfg():
     cfg.TRAIN.NUM_WORKERS = 4
     cfg.TRAIN.MAX_ITER = 100000
     cfg.TRAIN.GRADIENT_ACCUMULATION_STEPS = 1
-    cfg.TRAIN.MIXED_PRECISION = "fp16"
     cfg.TRAIN.GRAD_NORM = 1.0
 
     # EMA setup

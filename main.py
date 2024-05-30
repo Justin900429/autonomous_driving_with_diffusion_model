@@ -148,7 +148,6 @@ def main(args):
         gradient_accumulation_steps=cfg.TRAIN.GRADIENT_ACCUMULATION_STEPS,
         log_with=["aim"],
         project_config=configuration,
-        mixed_precision=cfg.TRAIN.MIXED_PRECISION,
     )
 
     accelerator.init_trackers(project_name=cfg.PROJECT_NAME)
@@ -225,8 +224,6 @@ def main(args):
         torch.cuda.empty_cache()
 
     weight_dtype = torch.float32
-    if accelerator.mixed_precision == "fp16":
-        weight_dtype = torch.float16
 
     loss_meter = MetricMeter()
     iter_time = AverageMeter()
