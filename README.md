@@ -30,3 +30,15 @@ python misc/data_collect.py --save-path data/ --save-num 5000
 ```
 
 If you would like to collect data under `off-screen` mode, please add the flag `--off-screen`.
+
+## Usage
+
+## Model training
+
+```shell
+# with single-gpu
+python main.py --config configs/default.yaml
+
+# with multi-gpus
+accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} main.py --config configs/default.yaml
+```
