@@ -17,3 +17,5 @@ control:
   module: actor_state.control
 velocity:
   module: actor_state.velocity
+traffic_light:
+  module: object_finder.traffic_light_new

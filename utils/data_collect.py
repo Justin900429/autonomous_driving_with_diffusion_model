@@ -21,6 +21,9 @@ def parse_args():
     )
     parser.add_argument("--save-num", default=5000, type=int, help="The number of data to save")
     parser.add_argument(
+        "--save-every-n-frame", default=2, type=int, help="Save the data every n frames"
+    )
+    parser.add_argument(
         "--off-screen",
         default=False,
         action="store_true",
@@ -46,7 +49,9 @@ def way_point_to_pixel(waypoint):
 
 
 class Agent:
-    def __init__(self, env_config_path, save_root, total_to_save, off_screen, seed):
+    def __init__(
+        self, env_config_path, save_root, total_to_save, save_every_n_frame, off_screen, seed
+    ):
         with initialize(config_path="../config"):
             cfg = compose(config_name=env_config_path)
         self.env, self.server_manager = create_env(cfg, off_screen, seed)
@@ -58,10 +63,11 @@ class Agent:
         os.makedirs(os.path.join(self.save_root, "front"), exist_ok=True)
         os.makedirs(os.path.join(self.save_root, "bev"), exist_ok=True)
         self.target_traj_num = 15
-        self.get_every_n_frame = 2
-        self.tota_frame_should_pass = self.target_traj_num * self.get_every_n_frame
+        self.total_frame_should_pass = self.target_traj_num
         self.total_to_save = total_to_save
         self.cur_save = 0
+        self.save_every_n_frame = save_every_n_frame
+        self.buffer_frames = 50
 
     def run(self):
         state = self.env.reset()
@@ -70,6 +76,8 @@ class Agent:
         init_compass = 0.0
         big_record = []
         buffer_frame = 0
+        prev_red = False
+        count_to_collect = 0
 
         while self.cur_save < self.total_to_save:
             input_control = {0: None}
@@ -78,8 +86,17 @@ class Agent:
             camera = state["camera"][0]
             bev = state["bev"][0]
 
+            # If the episode is done, clear the current trajectory to avoid inconsistency
             if done:
                 cur_traj.clear()
+                count_to_collect = 0
+                continue
+
+            if state["at_red_light"][0] == 1 and prev_red:
+                continue
+
+            if count_to_collect % self.save_every_n_frame != 0:
+                count_to_collect += 1
                 continue
 
             if len(cur_traj) == 0:
@@ -88,9 +105,18 @@ class Agent:
                 target_bev = bev
                 init_compass = state["compass"][0]
 
+                if state["at_red_light"][0] == 1:
+                    for _ in range(self.total_frame_should_pass - 1):
+                        cur_traj.append(cur_pos)
+                        prev_red = True
+                else:
+                    prev_red = False
+
             cur_traj.append(cur_pos)
 
-            if len(cur_traj) == self.tota_frame_should_pass:
+            if len(cur_traj) != self.total_frame_should_pass:
+                count_to_collect += 1
+            else:
                 save_bev_path = os.path.join(self.save_root, "bev", f"{self.cur_save:06d}.png")
                 added_traj = []
                 for traj in cur_traj:
@@ -113,11 +139,13 @@ class Agent:
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1
+                count_to_collect = 0
 
-            while buffer_frame < 50:
-                state, *_ = self.env.step(input_control)
-                buffer_frame += 1
-            buffer_frame = 0
+                # Skip the next 50 frames to increase the diversity of the data
+                while buffer_frame < self.buffer_frames:
+                    state, *_ = self.env.step(input_control)
+                    buffer_frame += 1
+                buffer_frame = 0
 
         with open(os.path.join(self.save_root, "waypoint.json"), "w") as f:
             json.dump(big_record, f)
@@ -136,6 +164,7 @@ if __name__ == "__main__":
         save_root=args.save_path,
         total_to_save=args.save_num,
         off_screen=args.off_screen,
+        save_every_n_frame=args.save_every_n_frame,
         seed=get_random_seed(),
     )
     agent.run()

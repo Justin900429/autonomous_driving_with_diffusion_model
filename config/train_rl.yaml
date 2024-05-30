@@ -14,7 +14,7 @@ actors:
       entry_point: terminal.valeo_no_det_px:ValeoNoDetPx
       kwargs: {}
 ev_id: hero
-carla_sh_path: /home/justin/Documents/Carla/CarlaUE4.sh
+carla_sh_path: /home/bokai/Documents/Carla_9.10/CarlaUE4.sh
 total_timesteps: 1e8
 seed: 2021
 kill_running: true

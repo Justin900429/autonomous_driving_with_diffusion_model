@@ -6,5 +6,5 @@ ppo:
   env_wrapper:
     entry_point: env_agents.rl_camera.utils.rl_camera_wrapper:RlCameraWrapper
     kwargs:
-      input_states: [speed_norm, yaw, control, vel_xy]
+      input_states: [speed_norm, yaw, control, vel_xy, at_red_light]
       acc_as_action: False
