@@ -20,3 +20,5 @@ python data_collection.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_DA
 # Concrete example
 python data_collection.py --save-path data/ --save-num 5000
 ```
+
+If you would like to collect data under `off-screen` mode, please add the flag `--off-screen`.

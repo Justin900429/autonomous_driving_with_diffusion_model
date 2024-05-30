@@ -24,6 +24,9 @@ def parse_args():
     parser.add_argument(
         "--save-num", default=5000, type=int, help="The number of data to save"
     )
+    parser.add_argument(
+        "--off-screen", default=True, type=bool, help="Run the simulation off-screen", default=False
+    )
     return parser.parse_args()
 
 
@@ -44,10 +47,10 @@ def way_point_to_pixel(waypoint):
 
 
 class Agent:
-    def __init__(self, env_config_path, save_root, total_to_save, seed):
+    def __init__(self, env_config_path, save_root, total_to_save, off_screen, seed):
         with initialize(config_path="../config"):
             cfg = compose(config_name=env_config_path)
-        self.env, self.server_manager = create_env(cfg, seed)
+        self.env, self.server_manager = create_env(cfg, off_screen, seed)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.magic_number = 23.315
@@ -138,6 +141,7 @@ if __name__ == "__main__":
         env_config_path=args.config_path,
         save_root=args.save_path,
         total_to_save=args.save_num,
+        off_screen=args.off_screen,
         seed=get_random_seed(),
     )
     agent.run()

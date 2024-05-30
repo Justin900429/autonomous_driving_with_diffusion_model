@@ -9,7 +9,7 @@ from carla_gym.utils import config_utils
 from utils import server_utils
 
 
-def create_env(cfg: DictConfig, seed=None):
+def create_env(cfg: DictConfig, off_screen=False, seed=None):
     set_random_seed(cfg.seed if seed is None else seed, using_cuda=True)
 
     os.environ["CARLA_API_PATH"] = os.path.join(
@@ -19,7 +19,7 @@ def create_env(cfg: DictConfig, seed=None):
     server_manager = server_utils.CarlaServerManager(
         cfg.carla_sh_path, configs=cfg.train_envs
     )
-    server_manager.start()
+    server_manager.start(off_screen=off_screen)
 
     # prepare agent
     agent_name = cfg.actors[cfg.ev_id].agent
