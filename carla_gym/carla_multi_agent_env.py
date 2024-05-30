@@ -7,8 +7,7 @@ from stable_baselines3.common.utils import set_random_seed
 
 from .core.obs_manager.obs_manager_handler import ObsManagerHandler
 from .core.task_actor.ego_vehicle.ego_vehicle_handler import EgoVehicleHandler
-from .core.task_actor.scenario_actor.scenario_actor_handler import \
-    ScenarioActorHandler
+from .core.task_actor.scenario_actor.scenario_actor_handler import ScenarioActorHandler
 from .core.zombie_vehicle.zombie_vehicle_handler import ZombieVehicleHandler
 from .core.zombie_walker.zombie_walker_handler import ZombieWalkerHandler
 from .utils.dynamic_weather import WeatherHandler
@@ -45,30 +44,29 @@ class CarlaMultiAgentEnv(gym.Env):
             self.client, reward_configs, terminal_configs, self.tm
         )
         self.zw_handler = ZombieWalkerHandler(self.client)
-        self.zv_handler = ZombieVehicleHandler(
-            self.client, tm_port=self.tm.get_port()
-        )
+        self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
         self.sa_handler = ScenarioActorHandler(self.client)
         self.wt_handler = WeatherHandler(self.world)
 
         # observation spaces
         self.observation_space = self.om_handler.observation_space
         for env_id in self.observation_space:
-            self.observation_space[env_id] = gym.spaces.Dict({
-                ** self.observation_space[env_id],
-                "cur_waypoint": gym.spaces.Box(
-                    low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
-                ),
-                "target_waypoint": gym.spaces.Box(
-                    low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
-                ),
-                "next_waypoint": gym.spaces.Box(
-                    low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
-                ),
-                "next_command": gym.spaces.Discrete(7),
-            }
+            self.observation_space[env_id] = gym.spaces.Dict(
+                {
+                    **self.observation_space[env_id],
+                    "cur_waypoint": gym.spaces.Box(
+                        low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
+                    ),
+                    "target_waypoint": gym.spaces.Box(
+                        low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
+                    ),
+                    "next_waypoint": gym.spaces.Box(
+                        low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
+                    ),
+                    "next_command": gym.spaces.Discrete(7),
+                }
             )
-        
+
         # define action spaces exposed to agent
         # throttle, steer, brake
         self.action_space = gym.spaces.Dict(
@@ -98,7 +96,7 @@ class CarlaMultiAgentEnv(gym.Env):
     @property
     def task(self):
         return self._task
-    
+
     @task.setter
     def task(self, task):
         self._task = task
@@ -264,7 +262,7 @@ class CarlaMultiAgentEnv(gym.Env):
     @property
     def timestamp(self):
         return self._timestamp.copy()
-    
+
     def set_timestamp(self, timestamp):
         self._timestamp = timestamp
 

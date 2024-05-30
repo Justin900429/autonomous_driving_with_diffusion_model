@@ -109,17 +109,19 @@ class RlBirdviewWrapper(gym.Wrapper):
         obs_ma, _, _, _ = self.env.step(action_ma)
 
         snap_shot = self.env.unwrapped.world.get_snapshot()
-        self.env.unwrapped.set_timestamp({
-            "step": 0,
-            "frame": 0,
-            "relative_wall_time": 0.0,
-            "wall_time": snap_shot.timestamp.platform_timestamp,
-            "relative_simulation_time": 0.0,
-            "simulation_time": snap_shot.timestamp.elapsed_seconds,
-            "start_frame": snap_shot.timestamp.frame,
-            "start_wall_time": snap_shot.timestamp.platform_timestamp,
-            "start_simulation_time": snap_shot.timestamp.elapsed_seconds,
-        })
+        self.env.unwrapped.set_timestamp(
+            {
+                "step": 0,
+                "frame": 0,
+                "relative_wall_time": 0.0,
+                "wall_time": snap_shot.timestamp.platform_timestamp,
+                "relative_simulation_time": 0.0,
+                "simulation_time": snap_shot.timestamp.elapsed_seconds,
+                "start_frame": snap_shot.timestamp.frame,
+                "start_wall_time": snap_shot.timestamp.platform_timestamp,
+                "start_simulation_time": snap_shot.timestamp.elapsed_seconds,
+            }
+        )
 
         obs = self.process_obs(obs_ma[self._ev_id], self._input_states)
 
