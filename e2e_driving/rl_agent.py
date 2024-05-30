@@ -145,10 +145,10 @@ class Agent:
             # control = self.process_control(pred, state, target_point)
             input_control = {0: None}
             state, reward, done, *_ = self.env.step(input_control)
-            
+
             camera = state["camera"]
             bev = state["bev"]
-            
+
             cv2.imwrite("camera.png", camera[0])
             # if done:
             #     break
