@@ -7,10 +7,9 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional
+from create_agent import create_env
 from hydra import compose, initialize
 from PIL import Image
-
-from env_agents import create_env
 
 
 def parse_args():

@@ -6,7 +6,8 @@ from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from carla_gym.utils import config_utils
-from utils import server_utils
+
+from . import server_utils
 
 
 def create_env(cfg: DictConfig, off_screen=False, seed=None):

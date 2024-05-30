@@ -5,8 +5,6 @@ import time
 
 from omegaconf import OmegaConf
 
-# os.environ.get('CUDA_VISIBLE_DEVICES')
-
 log = logging.getLogger(__name__)
 
 
