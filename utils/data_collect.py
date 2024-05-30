@@ -52,7 +52,7 @@ class Agent:
     def __init__(
         self, env_config_path, save_root, total_to_save, save_every_n_frame, off_screen, seed
     ):
-        with initialize(config_path="../config"):
+        with initialize(config_path="../configs"):
             cfg = compose(config_name=env_config_path)
         self.env, self.server_manager = create_env(cfg, off_screen, seed)
 
