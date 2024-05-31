@@ -52,13 +52,6 @@ class CarlaMultiAgentEnv(gym.Env):
         self.terminal_configs = terminal_configs
         
         self._init_client(host, port)
-        # self.om_handler = ObsManagerHandler(obs_configs)
-        # self.ev_handler = EgoVehicleHandler(
-        #     self.client, reward_configs, terminal_configs, self.tm
-        # )
-        # self.zw_handler = ZombieWalkerHandler(self.client)
-        # self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
-        # self.sa_handler = ScenarioActorHandler(self.client)
         
         # observation spaces
         self.observation_space = self.om_handler.observation_space
