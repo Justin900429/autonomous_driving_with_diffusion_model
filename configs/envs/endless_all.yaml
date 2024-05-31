@@ -1,6 +1,6 @@
 # @package envs
 env_configs:
-  carla_map: [Town01, Town02, Town03, Town04, Town05, Town06]
+  carla_map: [Town01, Town02, Town03, Town04, Town05]
   num_zombie_vehicles: [0, 75]
   num_zombie_walkers: [0, 200]
   weather_group: dynamic_1.0
