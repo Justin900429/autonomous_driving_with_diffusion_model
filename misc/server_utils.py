@@ -22,7 +22,7 @@ class CarlaServerManager:
         self._t_sleep = t_sleep
         self.env_configs = []
 
-        with open(os.path.dirname(carla_sh_str) + "VERSION", "r") as f:
+        with open(os.path.join(os.path.dirname(carla_sh_str), "VERSION"), "r") as f:
             carla_version = f.read().strip()
         self.larger_than_0_9_12 = carla_version >= "0.9.12"
 
@@ -45,8 +45,7 @@ class CarlaServerManager:
         kill_carla()
         for cfg in self.env_configs:
             cmd = (
-                f"bash {self._carla_sh_str} "
-                f'-fps=10 -carla-server -carla-rpc-port={cfg["port"]} -quality-level=low'
+                f"bash {self._carla_sh_str} " f'-fps=10 -carla-server -carla-rpc-port={cfg["port"]}'
             )
             if off_screen:
                 if self.larger_than_0_9_12:
