@@ -48,9 +48,7 @@ class EgoVehicleHandler(object):
             )
 
         filtered_spawn_points = [
-            transform
-            for transform in all_spawn_points
-            if not proximity_to_ev(transform)
+            transform for transform in all_spawn_points if not proximity_to_ev(transform)
         ]
 
         return filtered_spawn_points
@@ -65,20 +63,14 @@ class EgoVehicleHandler(object):
         for ev_id in actor_config:
             bp_filter = actor_config[ev_id]["model"]
             try:
-                blueprint = np.random.choice(
-                    self._world.get_blueprint_library().filter(bp_filter)
-                )
+                blueprint = np.random.choice(self._world.get_blueprint_library().filter(bp_filter))
             except ValueError:
                 bp_filter = bp_filter[:-4] + "_" + bp_filter[-4:]
-                blueprint = np.random.choice(
-                    self._world.get_blueprint_library().filter(bp_filter)
-                )
+                blueprint = np.random.choice(self._world.get_blueprint_library().filter(bp_filter))
             blueprint.set_attribute("role_name", ev_id)
 
             if len(route_config[ev_id]) == 0:
-                spawn_transform = np.random.choice(
-                    [x[1] for x in self._spawn_transforms]
-                )
+                spawn_transform = np.random.choice([x[1] for x in self._spawn_transforms])
             else:
                 spawn_transform = route_config[ev_id][0]
 
@@ -87,7 +79,9 @@ class EgoVehicleHandler(object):
 
             carla_vehicle = self._world.try_spawn_actor(blueprint, spawn_transform)
             carla_vehicle.set_autopilot(True, self._tm.get_port())
-            self._tm.auto_lane_change(carla_vehicle, True)
+            self._tm.random_left_lanechange_percentage(carla_vehicle, 0)
+            self._tm.random_right_lanechange_percentage(carla_vehicle, 0)
+            self._tm.auto_lane_change(carla_vehicle, False)
             self._tm.distance_to_leading_vehicle(carla_vehicle, 5.0)
             self._world.tick()
 
@@ -97,7 +91,7 @@ class EgoVehicleHandler(object):
                 endless = endless_config[ev_id]
             target_transforms = route_config[ev_id][1:]
             self.ego_vehicles[ev_id] = TaskVehicle(
-                carla_vehicle, target_transforms, self._spawn_transforms, endless
+                carla_vehicle, self._tm, target_transforms, self._spawn_transforms, endless
             )
 
             self.reward_handlers[ev_id] = self._build_instance(
@@ -168,8 +162,7 @@ class EgoVehicleHandler(object):
         for ev_id, control in control_dict.items():
             if control is not None:
                 self.ego_vehicles[ev_id].vehicle.apply_control(control)
-
-                next_waypoint = self.ego_vehicles[ev_id].get_next_location[0]
+            next_waypoint = self.ego_vehicles[ev_id].get_next_location[0]
 
             if not set_camera:
                 set_camera = True
@@ -178,25 +171,24 @@ class EgoVehicleHandler(object):
                     ego_location + carla.Location(z=40), carla.Rotation(pitch=-90)
                 )
                 self._world.get_spectator().set_transform(camera_position)
-                if control is not None:
-                    # 0 -> current point, 1 -> next target point, 2: -> following points
-                    for point in self.ego_vehicles[ev_id]._global_route[2:]:
-                        self._world.debug.draw_string(
-                            point[0].transform.location,
-                            "O",
-                            draw_shadow=False,
-                            color=carla.Color(r=255, g=0, b=0),
-                            life_time=-1,
-                            persistent_lines=True,
-                        )
+                # 0 -> current point, 1 -> next target point, 2: -> following points
+                for point in self.ego_vehicles[ev_id]._global_route[2:]:
                     self._world.debug.draw_string(
-                        next_waypoint.transform.location,
+                        point[0].transform.location,
                         "O",
                         draw_shadow=False,
-                        color=carla.Color(r=0, g=255, b=0),
+                        color=carla.Color(r=255, g=0, b=0),
                         life_time=-1,
                         persistent_lines=True,
                     )
+                self._world.debug.draw_string(
+                    next_waypoint.transform.location,
+                    "O",
+                    draw_shadow=False,
+                    color=carla.Color(r=0, g=255, b=0),
+                    life_time=-1,
+                    persistent_lines=True,
+                )
 
     def tick(self, timestamp):
         reward_dict, done_dict, info_dict = {}, {}, {}
@@ -204,9 +196,9 @@ class EgoVehicleHandler(object):
         for ev_id, ev in self.ego_vehicles.items():
             info_criteria = ev.tick(timestamp)
             info = info_criteria.copy()
-            done, timeout, terminal_reward, terminal_debug = self.terminal_handlers[
-                ev_id
-            ].get(timestamp)
+            done, timeout, terminal_reward, terminal_debug = self.terminal_handlers[ev_id].get(
+                timestamp
+            )
             reward, reward_debug = self.reward_handlers[ev_id].get(terminal_reward)
 
             reward_dict[ev_id] = reward
@@ -221,82 +213,50 @@ class EgoVehicleHandler(object):
 
             if info["collision"]:
                 if info["collision"]["collision_type"] == 0:
-                    self.info_buffers[ev_id]["collisions_layout"].append(
-                        info["collision"]
-                    )
+                    self.info_buffers[ev_id]["collisions_layout"].append(info["collision"])
                 elif info["collision"]["collision_type"] == 1:
-                    self.info_buffers[ev_id]["collisions_vehicle"].append(
-                        info["collision"]
-                    )
+                    self.info_buffers[ev_id]["collisions_vehicle"].append(info["collision"])
                 elif info["collision"]["collision_type"] == 2:
-                    self.info_buffers[ev_id]["collisions_pedestrian"].append(
-                        info["collision"]
-                    )
+                    self.info_buffers[ev_id]["collisions_pedestrian"].append(info["collision"])
                 else:
-                    self.info_buffers[ev_id]["collisions_others"].append(
-                        info["collision"]
-                    )
+                    self.info_buffers[ev_id]["collisions_others"].append(info["collision"])
             if info["run_red_light"]:
                 self.info_buffers[ev_id]["red_light"].append(info["run_red_light"])
             if info["encounter_light"]:
-                self.info_buffers[ev_id]["encounter_light"].append(
-                    info["encounter_light"]
-                )
+                self.info_buffers[ev_id]["encounter_light"].append(info["encounter_light"])
             if info["run_stop_sign"]:
                 if info["run_stop_sign"]["event"] == "encounter":
-                    self.info_buffers[ev_id]["encounter_stop"].append(
-                        info["run_stop_sign"]
-                    )
+                    self.info_buffers[ev_id]["encounter_stop"].append(info["run_stop_sign"])
                 elif info["run_stop_sign"]["event"] == "run":
-                    self.info_buffers[ev_id]["stop_infraction"].append(
-                        info["run_stop_sign"]
-                    )
+                    self.info_buffers[ev_id]["stop_infraction"].append(info["run_stop_sign"])
             if info["route_deviation"]:
                 self.info_buffers[ev_id]["route_dev"].append(info["route_deviation"])
             if info["blocked"]:
                 self.info_buffers[ev_id]["vehicle_blocked"].append(info["blocked"])
             if info["outside_route_lane"]:
                 if info["outside_route_lane"]["outside_lane"]:
-                    self.info_buffers[ev_id]["outside_lane"].append(
-                        info["outside_route_lane"]
-                    )
+                    self.info_buffers[ev_id]["outside_lane"].append(info["outside_route_lane"])
                 if info["outside_route_lane"]["wrong_lane"]:
-                    self.info_buffers[ev_id]["wrong_lane"].append(
-                        info["outside_route_lane"]
-                    )
+                    self.info_buffers[ev_id]["wrong_lane"].append(info["outside_route_lane"])
             # save episode summary
             if done:
                 info_dict[ev_id]["episode_event"] = self.info_buffers[ev_id]
                 info_dict[ev_id]["episode_event"]["timeout"] = info["timeout"]
-                info_dict[ev_id]["episode_event"]["route_completion"] = info[
-                    "route_completion"
-                ]
+                info_dict[ev_id]["episode_event"]["route_completion"] = info["route_completion"]
 
-                total_length = (
-                    float(info["route_completion"]["route_length_in_m"]) / 1000
-                )
-                completed_length = (
-                    float(info["route_completion"]["route_completed_in_m"]) / 1000
-                )
+                total_length = float(info["route_completion"]["route_length_in_m"]) / 1000
+                completed_length = float(info["route_completion"]["route_completed_in_m"]) / 1000
                 total_length = max(total_length, 0.001)
                 completed_length = max(completed_length, 0.001)
 
                 outside_lane_length = (
                     np.sum(
-                        [
-                            x["distance_traveled"]
-                            for x in self.info_buffers[ev_id]["outside_lane"]
-                        ]
+                        [x["distance_traveled"] for x in self.info_buffers[ev_id]["outside_lane"]]
                     )
                     / 1000
                 )
                 wrong_lane_length = (
-                    np.sum(
-                        [
-                            x["distance_traveled"]
-                            for x in self.info_buffers[ev_id]["wrong_lane"]
-                        ]
-                    )
+                    np.sum([x["distance_traveled"] for x in self.info_buffers[ev_id]["wrong_lane"]])
                     / 1000
                 )
 
@@ -308,25 +268,15 @@ class EgoVehicleHandler(object):
                     else:
                         score_route = completed_length / total_length
 
-                n_collisions_layout = int(
-                    len(self.info_buffers[ev_id]["collisions_layout"])
-                )
-                n_collisions_vehicle = int(
-                    len(self.info_buffers[ev_id]["collisions_vehicle"])
-                )
+                n_collisions_layout = int(len(self.info_buffers[ev_id]["collisions_layout"]))
+                n_collisions_vehicle = int(len(self.info_buffers[ev_id]["collisions_vehicle"]))
                 n_collisions_pedestrian = int(
                     len(self.info_buffers[ev_id]["collisions_pedestrian"])
                 )
-                n_collisions_others = int(
-                    len(self.info_buffers[ev_id]["collisions_others"])
-                )
+                n_collisions_others = int(len(self.info_buffers[ev_id]["collisions_others"]))
                 n_red_light = int(len(self.info_buffers[ev_id]["red_light"]))
-                n_encounter_light = int(
-                    len(self.info_buffers[ev_id]["encounter_light"])
-                )
-                n_stop_infraction = int(
-                    len(self.info_buffers[ev_id]["stop_infraction"])
-                )
+                n_encounter_light = int(len(self.info_buffers[ev_id]["encounter_light"]))
+                n_stop_infraction = int(len(self.info_buffers[ev_id]["stop_infraction"]))
                 n_encounter_stop = int(len(self.info_buffers[ev_id]["encounter_stop"]))
                 n_collisions = (
                     n_collisions_layout
@@ -356,9 +306,7 @@ class EgoVehicleHandler(object):
                     "length": len(self.reward_buffers[ev_id]),
                     "reward": np.sum(self.reward_buffers[ev_id]),
                     "timeout": float(info["timeout"]),
-                    "is_route_completed": float(
-                        info["route_completion"]["is_route_completed"]
-                    ),
+                    "is_route_completed": float(info["route_completion"]["is_route_completed"]),
                     "is_route_completed_nocrash": is_route_completed_nocrash,
                     "route_completed_in_km": completed_length,
                     "route_length_in_km": total_length,
@@ -374,8 +322,7 @@ class EgoVehicleHandler(object):
                     "stop_infraction": n_stop_infraction / completed_length,
                     "stop_passed": n_encounter_stop - n_stop_infraction,
                     "encounter_stop": n_encounter_stop,
-                    "route_dev": len(self.info_buffers[ev_id]["route_dev"])
-                    / completed_length,
+                    "route_dev": len(self.info_buffers[ev_id]["route_dev"]) / completed_length,
                     "vehicle_blocked": len(self.info_buffers[ev_id]["vehicle_blocked"])
                     / completed_length,
                 }
@@ -393,14 +340,10 @@ class EgoVehicleHandler(object):
         self.reward_buffers = {}
 
     def get_current_pos(self):
-        return {
-            ev_id: ev.vehicle.get_location() for ev_id, ev in self.ego_vehicles.items()
-        }
+        return {ev_id: ev.vehicle.get_location() for ev_id, ev in self.ego_vehicles.items()}
 
     def get_target_pos(self):
-        return {
-            ev_id: ev.get_target_location for ev_id, ev in self.ego_vehicles.items()
-        }
+        return {ev_id: ev.get_target_location for ev_id, ev in self.ego_vehicles.items()}
 
     def get_next_pos(self):
         return {ev_id: ev.get_next_location for ev_id, ev in self.ego_vehicles.items()}

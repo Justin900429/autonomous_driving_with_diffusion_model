@@ -23,7 +23,13 @@ logger.setLevel(logging.DEBUG)
 
 class TaskVehicle(object):
     def __init__(
-        self, vehicle, target_transforms, spawn_transforms, endless, sub_sample_size=5
+        self,
+        vehicle,
+        traffic_manager,
+        target_transforms,
+        spawn_transforms,
+        endless,
+        sub_sample_size=5,
     ):
         """
         vehicle: carla.Vehicle
@@ -33,6 +39,7 @@ class TaskVehicle(object):
         world = self.vehicle.get_world()
         self._map = world.get_map()
         self._world = world
+        self._tm = traffic_manager
 
         self.criteria_blocked = blocked.Blocked()
         self.criteria_collision = collision.Collision(self.vehicle, world)
@@ -59,6 +66,7 @@ class TaskVehicle(object):
         self._trace_route_to_global_target()
         self.sub_sample_size = sub_sample_size
         self._spawn_transforms = spawn_transforms
+        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
 
         self._endless = endless
         if len(self._target_transforms) == 0:
@@ -91,9 +99,7 @@ class TaskVehicle(object):
                 [x[1] for x in self._spawn_transforms if x[0] != last_road_id]
             )
 
-        route_trace = self._planner.trace_route(
-            last_target_loc, new_target_transform.location
-        )
+        route_trace = self._planner.trace_route(last_target_loc, new_target_transform.location)
         self._target_transforms.append(new_target_transform)
         self._route_length += self._compute_route_length(route_trace)
         self._update_leaderboard_plan(route_trace)
@@ -103,9 +109,7 @@ class TaskVehicle(object):
         temp_route = []
         for tt in self._target_transforms:
             next_target_location = tt.location
-            route_trace = self._planner.trace_route(
-                current_location, next_target_location
-            )
+            route_trace = self._planner.trace_route(current_location, next_target_location)
             self._route_length += self._compute_route_length(route_trace)
             temp_route.append(route_trace)
             current_location = next_target_location
@@ -116,9 +120,7 @@ class TaskVehicle(object):
     def _compute_route_length(route):
         length_in_m = 0.0
         for i in range(len(route) - 1):
-            d = route[i][0].transform.location.distance(
-                route[i + 1][0].transform.location
-            )
+            d = route[i][0].transform.location.distance(route[i + 1][0].transform.location)
             length_in_m += d
         return length_in_m
 
@@ -151,9 +153,7 @@ class TaskVehicle(object):
     def _truncate_global_route_till_cumulative_distance(
         self, route, min_distance=7, max_distance=50.0
     ):
-        ev_location = np.array(
-            [self.vehicle.get_location().x, self.vehicle.get_location().y]
-        )
+        ev_location = np.array([self.vehicle.get_location().x, self.vehicle.get_location().y])
         closest_idx = 0
         farthest_in_range = -np.inf
         cumulative_distance = 0.0
@@ -195,19 +195,20 @@ class TaskVehicle(object):
 
         percentage_route_completed = self._route_completed / self._route_length
         is_completed = percentage_route_completed > percentage_threshold
-        is_within_dist = (
-            ev_loc.distance(self._target_transforms[-1].location) < distance_threshold
-        )
+        is_within_dist = ev_loc.distance(self._target_transforms[-1].location) < distance_threshold
 
         return is_completed and is_within_dist
 
     def tick(self, timestamp):
         # distance_traveled, closest_idx = self._truncate_global_route_till_local_target(self._global_route)
+        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
         (
             distance_traveled,
             closest_idx,
         ) = self._truncate_global_route_till_cumulative_distance(self._global_route)
         self._global_route = self._global_route[closest_idx:]
+        self._global_plan_gps = self._global_plan_gps[closest_idx:]
+        self._global_plan_world_coord = self._global_plan_world_coord[closest_idx:]
 
         route_completed = self._is_route_completed()
         if self._endless and route_completed:
@@ -217,9 +218,7 @@ class TaskVehicle(object):
         info_blocked = self.criteria_blocked.tick(self.vehicle, timestamp)
         info_collision = self.criteria_collision.tick(self.vehicle, timestamp)
         info_light = self.criteria_light.tick(self.vehicle, timestamp)
-        info_encounter_light = self.criteria_encounter_light.tick(
-            self.vehicle, timestamp
-        )
+        info_encounter_light = self.criteria_encounter_light.tick(self.vehicle, timestamp)
         info_stop = self.criteria_stop.tick(self.vehicle, timestamp)
         info_outside_route_lane = self.criteria_outside_route_lane.tick(
             self.vehicle, timestamp, distance_traveled
@@ -254,9 +253,7 @@ class TaskVehicle(object):
         # turn on light
         weather = self._world.get_weather()
         if weather.sun_altitude_angle < 0.0:
-            vehicle_lights = (
-                carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam
-            )
+            vehicle_lights = carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam
         else:
             vehicle_lights = carla.VehicleLightState.NONE
         self.vehicle.set_light_state(carla.VehicleLightState(vehicle_lights))
