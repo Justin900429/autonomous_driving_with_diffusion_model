@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import time
+from distutils.version import LooseVersion
 
 from omegaconf import OmegaConf
 
@@ -22,8 +23,7 @@ class CarlaServerManager:
 
         with open(os.path.join(os.path.dirname(carla_sh_str), "VERSION"), "r") as f:
             carla_version = f.read().strip()
-        self.larger_than_0_9_12 = carla_version >= "0.9.12"
-
+        self.larger_than_0_9_12 = LooseVersion(carla_version) >= LooseVersion("0.9.12")
         if config is None:
             env_config = {
                 "gpu": 0,
