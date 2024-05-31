@@ -36,7 +36,7 @@ class TrajDataset(torch.utils.data.Dataset):
             self.count_access += 1
             img = self.augmentor_func(self.count_access).augment_image(img)
         img = self.img_transforms(img)
-        traj = self.waypoints[idx]
+        traj = self.waypoints[idx].clip(-1, 1)
         return img, traj
 
 
