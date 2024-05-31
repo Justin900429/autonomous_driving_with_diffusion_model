@@ -18,13 +18,6 @@ class TrajDataset(torch.utils.data.Dataset):
             self.count_access = 0
         self.root_path = root_path
         self.front_image = list(glob.glob(os.path.join(root_path, "front/*.png")))
-        
-        # Transform to torch to prevent memory issue
-        waypoint_path = os.path.join(root_path, "waypoints.json")
-        with open(waypoint_path, "r") as f:
-            waypoints = json.load(f)
-        waypoints.sort(key=lambda x: int(x["image"].split(".")[0]))
-        self.waypoints = torch.Tensor([x["traj"] for x in waypoints])
 
     def __len__(self):
         return len(self.front_image)
@@ -36,8 +29,15 @@ class TrajDataset(torch.utils.data.Dataset):
             self.count_access += 1
             img = self.augmentor_func(self.count_access).augment_image(img)
         img = self.img_transforms(img)
-        traj = self.waypoints[idx].clip(-1, 1)
-        return img, traj
+        
+        waypoint_name = os.path.join(self.root_path, "waypoints", f"{idx:06d}.txt")
+        with open(waypoint_name, "r") as f:
+            self.waypoints = f.readlines()
+        
+        waypoints = torch.tensor([list(map(float, line.strip().split())) for line in self.waypoints if len(line.strip()) != 0])
+        waypoints = waypoints.clip(-1, 1)
+        assert len(waypoints) == 16
+        return img, waypoints
 
 
 def get_loader(cfg, train: bool, img_transforms: Callable) -> torch.utils.data.DataLoader:
