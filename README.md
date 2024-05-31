@@ -6,7 +6,7 @@ Please ensure you have installed the Carla simulator and the Python API.
 
 ```shell
 git clone https://github.com/Justin900429/carla_diffusion.git
-conda create -n carla-diffusion python=3.10 -y
+conda create -n carla-diffusion python=3.8 -y
 conda activate carla-diffusion
 conda install pytorch==2.2.2 torchvision==0.17.2 pytorch-cuda=12.1 -c pytorch -c nvidia -y
 pip install -r requirements.txt
