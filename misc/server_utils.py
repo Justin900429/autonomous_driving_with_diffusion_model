@@ -16,44 +16,39 @@ def kill_carla():
 
 
 class CarlaServerManager:
-    def __init__(self, carla_sh_str, port=2000, configs=None, t_sleep=5):
+    def __init__(self, carla_sh_str, port=2000, config=None, t_sleep=5):
         self._carla_sh_str = carla_sh_str
-        # self._root_save_dir = root_save_dir
         self._t_sleep = t_sleep
-        self.env_configs = []
 
         with open(os.path.join(os.path.dirname(carla_sh_str), "VERSION"), "r") as f:
             carla_version = f.read().strip()
         self.larger_than_0_9_12 = carla_version >= "0.9.12"
 
-        if configs is None:
-            cfg = {
+        if config is None:
+            env_config = {
                 "gpu": 0,
                 "port": port,
             }
-            self.env_configs.append(cfg)
+            self.env_config = env_config
         else:
-            for cfg in configs:
-                for gpu in cfg["gpu"]:
-                    single_env_cfg = OmegaConf.to_container(cfg)
-                    single_env_cfg["gpu"] = gpu
-                    single_env_cfg["port"] = port
-                    self.env_configs.append(single_env_cfg)
-                    port += 5
+            env_config = OmegaConf.to_container(config)
+            env_config["gpu"] = config["gpu"]
+            env_config["port"] = port
+            self.env_config = env_config
+            port += 5
 
     def start(self, off_screen=False):
         kill_carla()
-        for cfg in self.env_configs:
-            cmd = (
-                f"bash {self._carla_sh_str} " f'-fps=10 -carla-server -carla-rpc-port={cfg["port"]}'
-            )
-            if off_screen:
-                if self.larger_than_0_9_12:
-                    cmd = f"{cmd} -RenderOffScreen"
-                else:
-                    cmd = f"DISPLAY= {cmd} -opengl"
-            log.info(cmd)
-            subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
+        cmd = (
+            f"bash {self._carla_sh_str} " f'-fps=10 -carla-server -carla-rpc-port={self.env_config["port"]}'
+        )
+        if off_screen:
+            if self.larger_than_0_9_12:
+                cmd = f"{cmd} -RenderOffScreen"
+            else:
+                cmd = f"DISPLAY= {cmd} -opengl"
+        log.info(cmd)
+        subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
         time.sleep(self._t_sleep)
 
     def stop(self):

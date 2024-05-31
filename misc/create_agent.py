@@ -16,8 +16,7 @@ def create_server(cfg: DictConfig, off_screen: bool = False) -> server_utils.Car
     os.environ["CARLA_API_PATH"] = os.path.join(
         os.path.dirname(cfg.carla_sh_path), "PythonAPI/carla/"
     )
-    # start carla servers
-    server_manager = server_utils.CarlaServerManager(cfg.carla_sh_path, configs=cfg.envs)
+    server_manager = server_utils.CarlaServerManager(cfg.carla_sh_path, config=cfg.envs)
     server_manager.start(off_screen=off_screen)
 
     return server_manager
@@ -57,13 +56,8 @@ def create_env(cfg: DictConfig, server_manager: server_utils.CarlaServerManager,
         env = EnvWrapper(env, **wrapper_kargs)
         return env
 
-    if cfg.dummy or len(server_manager.env_configs) == 1:
-        env = DummyVecEnv(
-            [lambda config=config: env_maker(config, seed) for config in server_manager.env_configs]
-        )
-    else:
-        env = SubprocVecEnv(
-            [lambda config=config: env_maker(config, seed) for config in server_manager.env_configs]
-        )
+    env = DummyVecEnv(
+        [lambda config=server_manager.env_config: env_maker(server_manager.env_config, seed)]
+    )
 
     return env

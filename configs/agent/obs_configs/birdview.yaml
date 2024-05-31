@@ -1,4 +1,4 @@
-# @package _group_
+# @package agent.collector.obs_configs
 birdview:
   module: birdview.chauffeurnet
   width_in_pixels: 192

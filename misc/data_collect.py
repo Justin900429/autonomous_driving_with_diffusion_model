@@ -57,7 +57,7 @@ class Agent:
         off_screen,
         seed,
     ):
-        with initialize(config_path="../configs"):
+        with initialize(config_path="../configs", version_base="1.3.2"):
             cfg = compose(config_name=env_config_path)
         self.server_manager = create_server(cfg, off_screen)
         self.env = create_env(cfg, self.server_manager, seed)

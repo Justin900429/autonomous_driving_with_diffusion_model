@@ -1,4 +1,4 @@
-# @package _group_
+# @package agent.collector.obs_configs
 camera:
   module: camera.rgb
   location: [-1.5, 0, 2.0]

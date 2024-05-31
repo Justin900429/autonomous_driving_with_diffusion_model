@@ -1,6 +1,8 @@
 defaults:
+  - _self_
   - agent: collector
   - envs: endless_all
+  - agent/obs_configs: camera
 actors:
   hero:
     agent: collector
@@ -11,6 +13,5 @@ actors:
       entry_point: terminal.valeo_no_det_px:ValeoNoDetPx
       kwargs: {}
 ev_id: hero
-carla_sh_path: /home/bokai/Documents/Carla/CarlaUE4.sh
+carla_sh_path: /home/justin/Documents/Carla/CarlaUE4.sh
 kill_running: true
-dummy: false

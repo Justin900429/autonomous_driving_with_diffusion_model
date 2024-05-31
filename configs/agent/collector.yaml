@@ -1,4 +1,4 @@
-# @package _group_
+# @package agent
 collector:
   entry_point: env_agents.rl_camera.rl_camera_agent:RlCameraAgent
   wb_run_path: null
