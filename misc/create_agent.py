@@ -39,7 +39,7 @@ def create_env(cfg: DictConfig, server_manager: server_utils.CarlaServerManager,
     EnvWrapper = config_utils.load_entry_point(cfg_agent.env_wrapper.entry_point)
     wrapper_kargs = cfg_agent.env_wrapper.kwargs
 
-    config_utils.check_h5_maps(cfg.train_envs, obs_configs, cfg.carla_sh_path)
+    config_utils.check_h5_maps(cfg.envs, obs_configs, cfg.carla_sh_path)
 
     def env_maker(config, seed=None):
         print(f'making port {config["port"]}')
