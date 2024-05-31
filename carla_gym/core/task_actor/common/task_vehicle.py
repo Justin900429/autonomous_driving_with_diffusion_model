@@ -66,7 +66,6 @@ class TaskVehicle(object):
         self._trace_route_to_global_target()
         self.sub_sample_size = sub_sample_size
         self._spawn_transforms = spawn_transforms
-        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
 
         self._endless = endless
         if len(self._target_transforms) == 0:
@@ -85,6 +84,7 @@ class TaskVehicle(object):
         self._global_plan_world_coord += [
             (route_trace[x][0].transform.location, route_trace[x][1]) for x in ds_ids
         ]
+        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
 
     def _add_random_target(self):
         if len(self._target_transforms) == 0:
@@ -201,7 +201,6 @@ class TaskVehicle(object):
 
     def tick(self, timestamp):
         # distance_traveled, closest_idx = self._truncate_global_route_till_local_target(self._global_route)
-        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
         (
             distance_traveled,
             closest_idx,
