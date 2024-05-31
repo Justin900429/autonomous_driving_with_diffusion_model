@@ -54,10 +54,9 @@ def create_cfg():
     cfg.TRAIN.TIME_STEPS = 100
     cfg.TRAIN.SAMPLE_STEPS = cfg.TRAIN.TIME_STEPS
     cfg.TRAIN.NOISE_SCHEDULER = CN()
-    # ///// for linear start \\\\\\\
+    # Below two lines are only useful when setting the scheduler type to `linear`
     cfg.TRAIN.NOISE_SCHEDULER.BETA_START = 1e-4
     cfg.TRAIN.NOISE_SCHEDULER.BETA_END = 0.02
-    # ///// for linear end \\\\\\\
     cfg.TRAIN.NOISE_SCHEDULER.TYPE = "squaredcos_cap_v2"
     cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE = "epsilon"
 
