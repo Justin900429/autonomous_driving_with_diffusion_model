@@ -22,6 +22,10 @@ class CarlaServerManager:
         self._t_sleep = t_sleep
         self.env_configs = []
 
+        with open(os.path.dirname(carla_sh_str) + "VERSION", "r") as f:
+            carla_version = f.read().strip()
+        self.larger_than_0_9_12 = carla_version >= "0.9.12"
+
         if configs is None:
             cfg = {
                 "gpu": 0,
@@ -41,11 +45,14 @@ class CarlaServerManager:
         kill_carla()
         for cfg in self.env_configs:
             cmd = (
-                f'CUDA_VISIBLE_DEVICES={cfg["gpu"]} bash {self._carla_sh_str} '
-                f'-fps=10 -carla-server -carla-rpc-port={cfg["port"]}'
+                f"bash {self._carla_sh_str} "
+                f'-fps=10 -carla-server -carla-rpc-port={cfg["port"]} -quality-level=low'
             )
             if off_screen:
-                cmd = f"DISPLAY= {cmd} -opengl"
+                if self.larger_than_0_9_12:
+                    cmd = f"{cmd} -RenderOffScreen"
+                else:
+                    cmd = f"DISPLAY= {cmd} -opengl"
             log.info(cmd)
             subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
         time.sleep(self._t_sleep)
