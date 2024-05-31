@@ -16,7 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Data Collection")
     parser.add_argument("--save-path", default="data", type=str, help="Path to save the data")
     parser.add_argument(
-        "--config-path", default="train_rl", type=str, help="Path to the config file"
+        "--config-path", default="data_collect", type=str, help="Path to the config file"
     )
     parser.add_argument("--save-num", default=5000, type=int, help="The number of data to save")
     parser.add_argument(

@@ -17,7 +17,7 @@ def create_server(cfg: DictConfig, off_screen: bool = False) -> server_utils.Car
         os.path.dirname(cfg.carla_sh_path), "PythonAPI/carla/"
     )
     # start carla servers
-    server_manager = server_utils.CarlaServerManager(cfg.carla_sh_path, configs=cfg.train_envs)
+    server_manager = server_utils.CarlaServerManager(cfg.carla_sh_path, configs=cfg.envs)
     server_manager.start(off_screen=off_screen)
 
     return server_manager
