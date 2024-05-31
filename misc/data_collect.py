@@ -73,7 +73,10 @@ class Agent:
         self.target_traj_num = 16
         self.total_frame_should_pass = self.target_traj_num
         self.total_to_save = total_to_save
-        self.cur_save = len(list(glob.glob(os.path.join(self.save_root, "front/*.png"))))
+        save_front = len(list(glob.glob(os.path.join(self.save_root, "front/*.png"))))
+        save_bev = len(list(glob.glob(os.path.join(self.save_root, "bev/*.png"))))
+        save_waypoints = len(list(glob.glob(os.path.join(self.save_root, "waypoints/*.txt"))))
+        self.cur_save = min(save_front, save_bev, save_waypoints)
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
         self.step_to_reset = step_to_reset
