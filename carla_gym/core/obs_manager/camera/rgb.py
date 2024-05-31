@@ -61,8 +61,12 @@ class ObsManager(ObsManagerBase):
         self._bev_transform = carla.Transform(location, rotation)
 
         self._sensor = None
+        self._bev_sensor = None
+        self._imu_sensor = None
         self._queue_timeout = 10.0
         self._image_queue = None
+        self._bev_image_queue = None
+        self._compass_queue = None
 
         super(ObsManager, self).__init__()
 
@@ -159,10 +163,21 @@ class ObsManager(ObsManagerBase):
         if self._sensor and self._sensor.is_alive:
             self._sensor.stop()
             self._sensor.destroy()
+        if self._bev_sensor and self._bev_sensor.is_alive:
+            self._bev_sensor.stop()
+            self._bev_sensor.destroy()
+        if self._imu_sensor and self._imu_sensor.is_alive:
+            self._imu_sensor.stop()
+            self._imu_sensor.destroy()
+            
         self._sensor = None
+        self._bev_sensor = None
+        self._imu_sensor = None
         self._world = None
 
         self._image_queue = None
+        self._bev_image_queue = None
+        self._compass_queue = None
 
     @staticmethod
     def _parse_image(weak_self, carla_image):

@@ -54,6 +54,7 @@ class Agent:
         save_root,
         total_to_save,
         save_every_n_frame,
+        step_to_reset,
         off_screen,
         seed,
     ):
@@ -74,6 +75,7 @@ class Agent:
         self.cur_save = 0
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
+        self.step_to_reset = step_to_reset
 
     def run(self):
         state = self.env.reset()
@@ -84,6 +86,7 @@ class Agent:
         buffer_frame = 0
         prev_red = False
         count_to_collect = 0
+        step_to_reset = 0
 
         while self.cur_save < self.total_to_save:
             input_control = {0: None}
@@ -147,11 +150,16 @@ class Agent:
                 self.cur_save += 1
                 count_to_collect = 0
 
+                if step_to_reset > self.step_to_reset:
+                    self.env.reset()
+                    step_to_reset = 0
+                
                 # Skip the next 50 frames to increase the diversity of the data
                 while buffer_frame < self.buffer_frames:
                     state, *_ = self.env.step(input_control)
                     buffer_frame += 1
                 buffer_frame = 0
+            step_to_reset += 1
 
         with open(os.path.join(self.save_root, "waypoints.json"), "w") as f:
             json.dump(big_record, f)
@@ -159,8 +167,11 @@ class Agent:
         print("Finished!")
 
     def __del__(self):
-        self.server_manager.stop()
-        print("Finished!")
+        if not os.path.exists(os.path.join(self.save_root, "waypoints.json")):
+            with open(os.path.join(self.save_root, "waypoints.json"), "w") as f:
+                json.dump([], f)
+            self.server_manager.stop()
+            print("Finished!")
 
 
 if __name__ == "__main__":
@@ -171,6 +182,7 @@ if __name__ == "__main__":
         total_to_save=args.save_num,
         off_screen=args.off_screen,
         save_every_n_frame=args.save_every_n_frame,
+        step_to_reset=args.save_every_n_frame * 100,
         seed=get_random_seed(),
     )
     agent.run()

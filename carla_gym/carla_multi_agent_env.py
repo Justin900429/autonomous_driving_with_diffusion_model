@@ -1,4 +1,5 @@
 import logging
+import random
 
 import carla
 import gymnasium as gym
@@ -7,7 +8,8 @@ from stable_baselines3.common.utils import set_random_seed
 
 from .core.obs_manager.obs_manager_handler import ObsManagerHandler
 from .core.task_actor.ego_vehicle.ego_vehicle_handler import EgoVehicleHandler
-from .core.task_actor.scenario_actor.scenario_actor_handler import ScenarioActorHandler
+from .core.task_actor.scenario_actor.scenario_actor_handler import \
+    ScenarioActorHandler
 from .core.zombie_vehicle.zombie_vehicle_handler import ZombieVehicleHandler
 from .core.zombie_walker.zombie_walker_handler import ZombieWalkerHandler
 from .utils.dynamic_weather import WeatherHandler
@@ -35,19 +37,29 @@ class CarlaMultiAgentEnv(gym.Env):
         self.seed = seed
 
         self.name = self.__class__.__name__
-
-        self._init_client(carla_map, host, port, seed=seed, no_rendering=no_rendering)
-
-        # define observation spaces exposed to agent
-        self.om_handler = ObsManagerHandler(obs_configs)
-        self.ev_handler = EgoVehicleHandler(
-            self.client, reward_configs, terminal_configs, self.tm
-        )
-        self.zw_handler = ZombieWalkerHandler(self.client)
-        self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
-        self.sa_handler = ScenarioActorHandler(self.client)
-        self.wt_handler = WeatherHandler(self.world)
-
+        
+        self.om_handler = None
+        self.ev_handler = None
+        self.zw_handler = None
+        self.zv_handler = None
+        self.sa_handler = None
+        self.wt_handler = None
+        
+        self.port = port
+        self.no_rendering = no_rendering
+        self.obs_configs = obs_configs
+        self.reward_configs = reward_configs
+        self.terminal_configs = terminal_configs
+        
+        self._init_client(host, port)
+        # self.om_handler = ObsManagerHandler(obs_configs)
+        # self.ev_handler = EgoVehicleHandler(
+        #     self.client, reward_configs, terminal_configs, self.tm
+        # )
+        # self.zw_handler = ZombieWalkerHandler(self.client)
+        # self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
+        # self.sa_handler = ScenarioActorHandler(self.client)
+        
         # observation spaces
         self.observation_space = self.om_handler.observation_space
         for env_id in self.observation_space:
@@ -105,7 +117,9 @@ class CarlaMultiAgentEnv(gym.Env):
         if self.shuffle_task:
             self.task_idx = np.random.choice(self.num_tasks)
             self.task = self.all_tasks[self.task_idx].copy()
-        self.clean()
+        self.random_load_map()
+        self.world.tick()
+        TrafficLightHandler.reset(self.world)
 
         self.wt_handler.reset(self.task["weather"])
         logger.debug("wt_handler reset done!!")
@@ -213,8 +227,30 @@ class CarlaMultiAgentEnv(gym.Env):
 
         self.wt_handler.tick(snap_shot.timestamp.delta_seconds)
         return obs_dict, reward_dict, done_dict, {}, info_dict
+    
+    def remake_task(self):
+        self.om_handler = ObsManagerHandler(self.obs_configs)
+        self.ev_handler = EgoVehicleHandler(
+            self.client, self.reward_configs, self.terminal_configs, self.tm
+        )
+        self.zw_handler = ZombieWalkerHandler(self.client)
+        self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
+        self.sa_handler = ScenarioActorHandler(self.client)
+        
+    def random_load_map(self):
+        if self.wt_handler is not None:
+            self.set_sync_mode(False)
+            self.clean()
+        current_map = random.choice(self.carla_map)
+        self.world = self.client.load_world(current_map)
+        self.tm = self.client.get_trafficmanager(self.port + 6000)
+        self.tm.set_random_device_seed(self.seed)
+        self.remake_task()
+        self.wt_handler = WeatherHandler(self.world)
+        self.set_sync_mode(True)
+        self.set_no_rendering_mode(self.world, self.no_rendering)
 
-    def _init_client(self, carla_map, host, port, seed=2021, no_rendering=False):
+    def _init_client(self, host, port):
         client = None
         while client is None:
             try:
@@ -226,23 +262,9 @@ class CarlaMultiAgentEnv(gym.Env):
                 client = None
 
         self.client = client
-        self.world = client.load_world(carla_map)
-        self.tm = client.get_trafficmanager(port + 6000)
-
-        self.set_sync_mode(True)
-        self.set_no_rendering_mode(self.world, no_rendering)
-
-        # self.tm.set_hybrid_physics_mode(True)
-
-        # self.tm.set_global_distance_to_leading_vehicle(5.0)
-        # logger.debug("trafficmanager set_global_distance_to_leading_vehicle")
-
+        self.random_load_map()
         set_random_seed(self.seed, using_cuda=True)
-        self.tm.set_random_device_seed(self.seed)
-
         self.world.tick()
-
-        # register traffic lights
         TrafficLightHandler.reset(self.world)
 
     def set_sync_mode(self, sync):
@@ -284,4 +306,12 @@ class CarlaMultiAgentEnv(gym.Env):
         self.om_handler.clean()
         self.ev_handler.clean()
         self.wt_handler.clean()
+        
+        self.sa_handler = None
+        self.zw_handler = None
+        self.zv_handler = None
+        self.om_handler = None
+        self.ev_handler = None
+        self.wt_handler = None
+        
         self.world.tick()

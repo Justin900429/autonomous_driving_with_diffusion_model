@@ -78,7 +78,7 @@ class EgoVehicleHandler(object):
             spawn_transform.location.z = wp.transform.location.z + 1.321
 
             carla_vehicle = self._world.try_spawn_actor(blueprint, spawn_transform)
-            carla_vehicle.set_autopilot(True, self._tm.get_port())
+            carla_vehicle.set_autopilot(True)
             self._tm.random_left_lanechange_percentage(carla_vehicle, 0)
             self._tm.random_right_lanechange_percentage(carla_vehicle, 0)
             self._tm.auto_lane_change(carla_vehicle, False)
