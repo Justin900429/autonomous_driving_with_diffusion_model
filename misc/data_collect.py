@@ -1,5 +1,5 @@
 import argparse
-import json
+import glob
 import os
 import time
 
@@ -69,10 +69,11 @@ class Agent:
         self.save_root = save_root
         os.makedirs(os.path.join(self.save_root, "front"), exist_ok=True)
         os.makedirs(os.path.join(self.save_root, "bev"), exist_ok=True)
+        os.makedirs(os.path.join(self.save_root, "waypoints"), exist_ok=True)
         self.target_traj_num = 16
         self.total_frame_should_pass = self.target_traj_num
         self.total_to_save = total_to_save
-        self.cur_save = 0
+        self.cur_save = len(list(glob.glob(os.path.join(self.save_root, "front/*.png"))))
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
         self.step_to_reset = step_to_reset
@@ -144,7 +145,11 @@ class Agent:
                         target_bev, (int(pixel_x), int(pixel_y)), 3, (0, 255, 0), -1
                     )
                     added_traj.append((traj[1] / self.magic_number, -traj[0] / self.magic_number))
-                big_record.append({"traj": added_traj, "image": f"{self.cur_save:06d}.png"})
+                with open(
+                    os.path.join(self.save_root, "waypoints", f"{self.cur_save:06d}.txt"), "w"
+                ) as f:
+                    for traj in added_traj:
+                        f.write(f"{traj[0]} {traj[1]}\n")
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1
@@ -161,17 +166,12 @@ class Agent:
                 buffer_frame = 0
             step_to_reset += 1
 
-        with open(os.path.join(self.save_root, "waypoints.json"), "w") as f:
-            json.dump(big_record, f)
         self.server_manager.stop()
         print("Finished!")
 
     def __del__(self):
-        if not os.path.exists(os.path.join(self.save_root, "waypoints.json")):
-            with open(os.path.join(self.save_root, "waypoints.json"), "w") as f:
-                json.dump([], f)
-            self.server_manager.stop()
-            print("Finished!")
+        self.server_manager.stop()
+        print("Finished!")
 
 
 if __name__ == "__main__":
