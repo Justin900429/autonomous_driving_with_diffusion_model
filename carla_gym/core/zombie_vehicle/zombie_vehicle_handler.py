@@ -1,6 +1,8 @@
-import numpy as np
-import carla
 import logging
+
+import carla
+import numpy as np
+
 from .zombie_vehicle import ZombieVehicle
 
 
@@ -89,14 +91,6 @@ class ZombieVehicleHandler(object):
         live_vehicle_list = [
             vehicle.id for vehicle in self._world.get_actors().filter("*vehicle*")
         ]
-        # batch1 = []
-        # batch2 = []
-        # SetAutopilot = carla.command.SetAutopilot
-        # DestroyActor = carla.command.DestroyActor
-        # batch1.append(SetAutopilot(zv_id, False))
-        # batch1.append(DestroyActor(zv_id))
-        # self._client.apply_batch_sync(batch1, do_tick=True)
-        # self._client.apply_batch_sync(batch2, do_tick=True)
         for zv_id, zv in self.zombie_vehicles.items():
             if zv_id in live_vehicle_list:
                 zv.clean()

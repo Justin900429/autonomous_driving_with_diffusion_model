@@ -11,6 +11,8 @@ class ZombieWalker(object):
         self._controller.set_max_speed(1 + np.random.random())
 
     def clean(self):
-        self._controller.stop()
-        self._controller.destroy()
-        self._walker.destroy()
+        if self._controller.is_alive:
+            self._controller.stop()
+            self._controller.destroy()
+        if self._walker.is_alive:
+            self._walker.destroy()

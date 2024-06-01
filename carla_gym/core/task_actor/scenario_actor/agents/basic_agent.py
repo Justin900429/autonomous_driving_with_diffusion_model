@@ -1,6 +1,8 @@
+import carla
 import numpy as np
+
 from .utils.local_planner import LocalPlanner
-from .utils.misc import is_within_distance_ahead, compute_yaw_difference
+from .utils.misc import compute_yaw_difference, is_within_distance_ahead
 
 
 class BasicAgent(object):

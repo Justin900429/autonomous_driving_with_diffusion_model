@@ -1,4 +1,3 @@
-import numpy as np
 import carla
 
 
@@ -12,4 +11,5 @@ class ZombieVehicle(object):
 
     def clean(self):
         # self._vehicle.set_autopilot(False)
-        self._vehicle.destroy()
+        if self._vehicle.is_alive:
+            self._vehicle.destroy()

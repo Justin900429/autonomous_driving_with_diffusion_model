@@ -5,21 +5,14 @@ import weakref
 import carla
 import numpy as np
 
-from .criteria import (
-    blocked,
-    collision,
-    encounter_light,
-    outside_route_lane,
-    route_deviation,
-    run_red_light,
-    run_stop_sign,
-)
+from .criteria import (blocked, collision, encounter_light, outside_route_lane,
+                       route_deviation, run_red_light, run_stop_sign)
 from .navigation.global_route_planner import GlobalRoutePlanner
-from .navigation.route_manipulation import downsample_route, location_route_to_gps
+from .navigation.route_manipulation import (downsample_route,
+                                            location_route_to_gps)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 
 class TaskVehicle(object):
     def __init__(
@@ -57,7 +50,7 @@ class TaskVehicle(object):
 
         self._target_transforms = target_transforms  # transforms
 
-        self._planner = GlobalRoutePlanner(self._map, resolution=2.0)
+        self._planner = GlobalRoutePlanner(self._map, resolution=1.0)
 
         self._global_route = []
         self._global_plan_gps = []
@@ -79,13 +72,10 @@ class TaskVehicle(object):
         plan_gps = location_route_to_gps(route_trace)
         ds_ids = downsample_route(route_trace, 50)
 
-        self._global_route += [route_trace[x] for x in ds_ids]
         self._global_plan_gps += [plan_gps[x] for x in ds_ids]
-        self._global_plan_world_coord += [
-            (route_trace[x][0].transform.location, route_trace[x][1]) for x in ds_ids
-        ]
-        self._tm.set_path(self.vehicle, [x[0] for x in self._global_plan_world_coord])
-
+        self._global_plan_world_coord += [(route_trace[x][0].transform.location, route_trace[x][1]) for x in ds_ids]
+        self._tm.set_path(self.vehicle, [x[0].transform.location for x in route_trace])
+        
     def _add_random_target(self):
         if len(self._target_transforms) == 0:
             last_target_loc = self.vehicle.get_location()
@@ -95,26 +85,24 @@ class TaskVehicle(object):
         else:
             last_target_loc = self._target_transforms[-1].location
             last_road_id = self._map.get_waypoint(last_target_loc).road_id
-            new_target_transform = np.random.choice(
-                [x[1] for x in self._spawn_transforms if x[0] != last_road_id]
-            )
+            new_target_transform = np.random.choice([x[1] for x in self._spawn_transforms if x[0] != last_road_id])
 
         route_trace = self._planner.trace_route(last_target_loc, new_target_transform.location)
+        self._global_route += route_trace
         self._target_transforms.append(new_target_transform)
         self._route_length += self._compute_route_length(route_trace)
         self._update_leaderboard_plan(route_trace)
 
     def _trace_route_to_global_target(self):
         current_location = self.vehicle.get_location()
-        temp_route = []
         for tt in self._target_transforms:
             next_target_location = tt.location
             route_trace = self._planner.trace_route(current_location, next_target_location)
+            self._global_route += route_trace
             self._route_length += self._compute_route_length(route_trace)
-            temp_route.append(route_trace)
             current_location = next_target_location
 
-        self._update_leaderboard_plan(temp_route)
+        self._update_leaderboard_plan(self._global_route)
 
     @staticmethod
     def _compute_route_length(route):
@@ -124,54 +112,55 @@ class TaskVehicle(object):
             length_in_m += d
         return length_in_m
 
-    def _truncate_global_route_till_local_target(self, route, windows_size=5):
+    def _truncate_global_route_till_local_target(self, windows_size=5):
         ev_location = self.vehicle.get_location()
         closest_idx = 0
 
-        for i in range(len(route) - 1):
+        for i in range(len(self._global_route)-1):
             if i > windows_size:
                 break
 
-            loc0 = route[i][0].transform.location
-            loc1 = route[i + 1][0].transform.location
+            loc0 = self._global_route[i][0].transform.location
+            loc1 = self._global_route[i+1][0].transform.location
 
             wp_dir = loc1 - loc0
             wp_veh = ev_location - loc0
             dot_ve_wp = wp_veh.x * wp_dir.x + wp_veh.y * wp_dir.y + wp_veh.z * wp_dir.z
 
             if dot_ve_wp > 0:
-                closest_idx = i + 1
+                closest_idx = i+1
 
-        distance_traveled = self._compute_route_length(route[: closest_idx + 1])
+        distance_traveled = self._compute_route_length(self._global_route[:closest_idx+1])
         self._route_completed += distance_traveled
 
         if closest_idx > 0:
-            self._last_route_location = carla.Location(route[0][0].transform.location)
+            self._last_route_location = carla.Location(self._global_route[0][0].transform.location)
 
-        return distance_traveled, closest_idx
+        self._global_route = self._global_route[closest_idx:]
+        return distance_traveled
 
     def _truncate_global_route_till_cumulative_distance(
-        self, route, min_distance=7, max_distance=50.0
+        self, min_distance=7, max_distance=50.0
     ):
         ev_location = np.array([self.vehicle.get_location().x, self.vehicle.get_location().y])
         closest_idx = 0
         farthest_in_range = -np.inf
         cumulative_distance = 0.0
 
-        for i in range(1, len(route)):
+        for i in range(1, len(self._global_route)):
             if cumulative_distance > max_distance:
                 break
 
             cur_route = np.array(
                 [
-                    route[i][0].transform.location.x,
-                    route[i][0].transform.location.y,
+                    self._global_route[i][0].transform.location.x,
+                    self._global_route[i][0].transform.location.y,
                 ]
             )
             prev_route = np.array(
                 [
-                    route[i - 1][0].transform.location.x,
-                    route[i - 1][0].transform.location.y,
+                    self._global_route[i - 1][0].transform.location.x,
+                    self._global_route[i - 1][0].transform.location.y,
                 ]
             )
             cumulative_distance += np.linalg.norm(cur_route - prev_route)
@@ -181,13 +170,14 @@ class TaskVehicle(object):
                 farthest_in_range = distance
                 closest_idx = i
 
-        distance_traveled = self._compute_route_length(route[: closest_idx + 1])
+        distance_traveled = self._compute_route_length(self._global_route[: closest_idx + 1])
         self._route_completed += distance_traveled
 
         if closest_idx > 0:
-            self._last_route_location = carla.Location(route[0][0].transform.location)
+            self._last_route_location = carla.Location(self._global_route[0][0].transform.location)
 
-        return distance_traveled, closest_idx
+        self._global_route = self._global_route[closest_idx:]
+        return distance_traveled
 
     def _is_route_completed(self, percentage_threshold=0.99, distance_threshold=10.0):
         # distance_threshold=10.0
@@ -200,15 +190,9 @@ class TaskVehicle(object):
         return is_completed and is_within_dist
 
     def tick(self, timestamp):
-        # distance_traveled, closest_idx = self._truncate_global_route_till_local_target(self._global_route)
-        (
-            distance_traveled,
-            closest_idx,
-        ) = self._truncate_global_route_till_cumulative_distance(self._global_route)
-        self._global_route = self._global_route[closest_idx:]
-        self._global_plan_gps = self._global_plan_gps[closest_idx:]
-        self._global_plan_world_coord = self._global_plan_world_coord[closest_idx:]
-
+        # distance_traveled = self._truncate_global_route_till_local_target()
+        distance_traveled   = self._truncate_global_route_till_cumulative_distance()
+        
         route_completed = self._is_route_completed()
         if self._endless and route_completed:
             self._add_random_target()
@@ -261,7 +245,8 @@ class TaskVehicle(object):
 
     def clean(self):
         self.criteria_collision.clean()
-        self.vehicle.destroy()
+        if self.vehicle.is_alive:
+            self.vehicle.destroy()
 
     @property
     def info_criteria(self):
