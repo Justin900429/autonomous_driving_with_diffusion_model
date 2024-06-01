@@ -1,5 +1,3 @@
-import logging
-
 import carla
 import numpy as np
 
@@ -19,9 +17,6 @@ from .criteria import (
 )
 from .navigation.global_route_planner import GlobalRoutePlanner
 from .navigation.route_manipulation import downsample_route, location_route_to_gps
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class TaskVehicle(object):
@@ -60,7 +55,7 @@ class TaskVehicle(object):
         self._target_transforms = target_transforms  # transforms
 
         self._planner = GlobalRoutePlanner(self._map, resolution=1.0)
-        self._action_planner = LocalPlanner(target_speed=9.5)
+        self._action_planner = LocalPlanner(target_speed=12)
         self._global_route = []
         self._global_plan_gps = []
         self._global_plan_world_coord = []

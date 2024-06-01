@@ -226,13 +226,11 @@ class CarlaMultiAgentEnv(gym.Env):
 
     def random_load_map(self):
         if self.wt_handler is not None:
-            self.set_sync_mode(False)
+            self.tm.set_synchronous_mode(False)
+            self.set_sync_mode(False, set_tm=False)
             self.clean()
-            actors = self.world.get_actors()
-            self.client.apply_batch([carla.command.DestroyActor(x) for x in actors])
         current_map = random.choice(self.carla_map)
         self.world = self.client.load_world(current_map)
-        self.tm = self.client.get_trafficmanager(self.port + 6000)
         self.tm.set_random_device_seed(self.seed)
         self.remake_task()
         self.wt_handler = WeatherHandler(self.world)
@@ -251,18 +249,20 @@ class CarlaMultiAgentEnv(gym.Env):
                 client = None
 
         self.client = client
+        self.tm = self.client.get_trafficmanager(self.port + 6000)
         self.random_load_map()
         set_random_seed(self.seed, using_cuda=True)
         self.world.tick()
         TrafficLightHandler.reset(self.world)
 
-    def set_sync_mode(self, sync):
+    def set_sync_mode(self, sync, set_tm=True):
         settings = self.world.get_settings()
         settings.synchronous_mode = sync
         settings.fixed_delta_seconds = 0.1
         settings.deterministic_ragdolls = True
         self.world.apply_settings(settings)
-        self.tm.set_synchronous_mode(sync)
+        if set_tm:
+            self.tm.set_synchronous_mode(sync)
 
     @staticmethod
     def set_no_rendering_mode(world, no_rendering):
