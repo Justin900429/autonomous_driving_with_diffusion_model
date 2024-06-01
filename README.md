@@ -32,7 +32,19 @@ python misc/data_collect.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_
 python misc/data_collect.py --save-path data/ --save-num 5000
 ```
 
-If you would like to collect data under `off-screen` mode, please add the flag `--off-screen`.
+> If you would like to collect data under `off-screen` mode, please add the flag `--off-screen`.
+
+If you find the data collection process fail during the simulation, please try the following way (this always run in `off-screen` mode):
+
+```shell
+python misc/collect_loop.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_DATA}
+
+# Concrete example
+python misc/collect_loop.py --save-path data/ --save-num 5000
+```
+
+This help restart the simulation when the simulation is crashed but the number of data does not reach the target.
+
 
 ## Usage
 
