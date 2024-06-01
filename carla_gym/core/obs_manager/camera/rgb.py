@@ -86,9 +86,7 @@ class ObsManager(ObsManagerBase):
                     shape=(self._bev_height, self._bev_width, self._bev_channels),
                     dtype=np.uint8,
                 ),
-                "compass": spaces.Box(
-                    low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32
-                ),
+                "compass": spaces.Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32),
             }
         )
 
@@ -141,9 +139,7 @@ class ObsManager(ObsManagerBase):
         try:
             frame, data = self._image_queue.get(True, self._queue_timeout)
             bev_frame, bev_data = self._bev_image_queue.get(True, self._queue_timeout)
-            compass_frame, compass_data = self._compass_queue.get(
-                True, self._queue_timeout
-            )
+            compass_frame, compass_data = self._compass_queue.get(True, self._queue_timeout)
             assert snap_shot.frame == frame
             assert snap_shot.frame == bev_frame
             assert snap_shot.frame == compass_frame
@@ -169,7 +165,7 @@ class ObsManager(ObsManagerBase):
         if self._imu_sensor and self._imu_sensor.is_alive:
             self._imu_sensor.stop()
             self._imu_sensor.destroy()
-            
+
         self._sensor = None
         self._bev_sensor = None
         self._imu_sensor = None

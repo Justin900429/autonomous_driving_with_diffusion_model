@@ -7,15 +7,12 @@ import gymnasium as gym
 import server_utils
 from omegaconf import DictConfig, OmegaConf
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 from carla_gym.utils import config_utils
 
 
 def create_server(cfg: DictConfig, off_screen: bool = False) -> server_utils.CarlaServerManager:
-    os.environ["CARLA_API_PATH"] = os.path.join(
-        os.path.dirname(cfg.carla_sh_path), "PythonAPI/carla/"
-    )
     server_manager = server_utils.CarlaServerManager(cfg.carla_sh_path, config=cfg.envs)
     server_manager.start(off_screen=off_screen)
 

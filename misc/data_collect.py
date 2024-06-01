@@ -1,6 +1,7 @@
 import argparse
 import glob
 import os
+import sys
 import time
 
 import cv2
@@ -86,7 +87,6 @@ class Agent:
         cur_traj = []
         target_bev = None
         init_compass = 0.0
-        big_record = []
         buffer_frame = 0
         prev_red = False
         count_to_collect = 0
@@ -103,6 +103,7 @@ class Agent:
             if done:
                 cur_traj.clear()
                 count_to_collect = 0
+                step_to_reset = 0
                 continue
 
             if state["at_red_light"][0] == 1 and prev_red:
@@ -161,7 +162,7 @@ class Agent:
                 if step_to_reset > self.step_to_reset:
                     self.env.reset()
                     step_to_reset = 0
-                
+
                 # Skip the next 50 frames to increase the diversity of the data
                 while buffer_frame < self.buffer_frames:
                     state, *_ = self.env.step(input_control)

@@ -110,7 +110,6 @@ class CarlaMultiAgentEnv(gym.Env):
             self.task_idx = np.random.choice(self.num_tasks)
             self.task = self.all_tasks[self.task_idx].copy()
         self.random_load_map()
-        self.world.tick()
         TrafficLightHandler.reset(self.world)
 
         self.wt_handler.reset(self.task["weather"])
@@ -226,9 +225,9 @@ class CarlaMultiAgentEnv(gym.Env):
 
     def random_load_map(self):
         if self.wt_handler is not None:
+            self.clean()
             self.tm.set_synchronous_mode(False)
             self.set_sync_mode(False, set_tm=False)
-            self.clean()
         current_map = random.choice(self.carla_map)
         self.world = self.client.load_world(current_map)
         self.tm.set_random_device_seed(self.seed)
