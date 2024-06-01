@@ -8,8 +8,7 @@ from stable_baselines3.common.utils import set_random_seed
 
 from .core.obs_manager.obs_manager_handler import ObsManagerHandler
 from .core.task_actor.ego_vehicle.ego_vehicle_handler import EgoVehicleHandler
-from .core.task_actor.scenario_actor.scenario_actor_handler import \
-    ScenarioActorHandler
+from .core.task_actor.scenario_actor.scenario_actor_handler import ScenarioActorHandler
 from .core.zombie_vehicle.zombie_vehicle_handler import ZombieVehicleHandler
 from .core.zombie_walker.zombie_walker_handler import ZombieWalkerHandler
 from .utils.dynamic_weather import WeatherHandler
@@ -37,22 +36,22 @@ class CarlaMultiAgentEnv(gym.Env):
         self.seed = seed
 
         self.name = self.__class__.__name__
-        
+
         self.om_handler = None
         self.ev_handler = None
         self.zw_handler = None
         self.zv_handler = None
         self.sa_handler = None
         self.wt_handler = None
-        
+
         self.port = port
         self.no_rendering = no_rendering
         self.obs_configs = obs_configs
         self.reward_configs = reward_configs
         self.terminal_configs = terminal_configs
-        
+
         self._init_client(host, port)
-        
+
         # observation spaces
         self.observation_space = self.om_handler.observation_space
         for env_id in self.observation_space:
@@ -120,9 +119,7 @@ class CarlaMultiAgentEnv(gym.Env):
         ev_spawn_locations = self.ev_handler.reset(self.task["ego_vehicles"])
         logger.debug("ev_handler reset done!!")
 
-        self.sa_handler.reset(
-            self.task["scenario_actors"], self.ev_handler.ego_vehicles
-        )
+        self.sa_handler.reset(self.task["scenario_actors"], self.ev_handler.ego_vehicles)
         logger.debug("sa_handler reset done!!")
 
         self.zw_handler.reset(self.task["num_zombie_walkers"], ev_spawn_locations)
@@ -181,9 +178,7 @@ class CarlaMultiAgentEnv(gym.Env):
 
         # update timestamp
         snap_shot = self.world.get_snapshot()
-        self._timestamp["step"] = (
-            snap_shot.timestamp.frame - self._timestamp["start_frame"]
-        )
+        self._timestamp["step"] = snap_shot.timestamp.frame - self._timestamp["start_frame"]
         self._timestamp["frame"] = snap_shot.timestamp.frame
         self._timestamp["wall_time"] = snap_shot.timestamp.platform_timestamp
         self._timestamp["relative_wall_time"] = (
@@ -191,8 +186,7 @@ class CarlaMultiAgentEnv(gym.Env):
         )
         self._timestamp["simulation_time"] = snap_shot.timestamp.elapsed_seconds
         self._timestamp["relative_simulation_time"] = (
-            self._timestamp["simulation_time"]
-            - self._timestamp["start_simulation_time"]
+            self._timestamp["simulation_time"] - self._timestamp["start_simulation_time"]
         )
 
         reward_dict, done_dict, info_dict = self.ev_handler.tick(self.timestamp)
@@ -220,7 +214,7 @@ class CarlaMultiAgentEnv(gym.Env):
 
         self.wt_handler.tick(snap_shot.timestamp.delta_seconds)
         return obs_dict, reward_dict, done_dict, {}, info_dict
-    
+
     def remake_task(self):
         self.om_handler = ObsManagerHandler(self.obs_configs)
         self.ev_handler = EgoVehicleHandler(
@@ -229,11 +223,13 @@ class CarlaMultiAgentEnv(gym.Env):
         self.zw_handler = ZombieWalkerHandler(self.client)
         self.zv_handler = ZombieVehicleHandler(self.client, tm_port=self.tm.get_port())
         self.sa_handler = ScenarioActorHandler(self.client)
-        
+
     def random_load_map(self):
         if self.wt_handler is not None:
             self.set_sync_mode(False)
             self.clean()
+            actors = self.world.get_actors()
+            self.client.apply_batch([carla.command.DestroyActor(x) for x in actors])
         current_map = random.choice(self.carla_map)
         self.world = self.client.load_world(current_map)
         self.tm = self.client.get_trafficmanager(self.port + 6000)
@@ -299,12 +295,12 @@ class CarlaMultiAgentEnv(gym.Env):
         self.om_handler.clean()
         self.ev_handler.clean()
         self.wt_handler.clean()
-        
+
         self.sa_handler = None
         self.zw_handler = None
         self.zv_handler = None
         self.om_handler = None
         self.ev_handler = None
         self.wt_handler = None
-        
+
         self.world.tick()

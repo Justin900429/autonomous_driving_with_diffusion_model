@@ -39,8 +39,7 @@ class BasicAgent(object):
         redlight_ahead = self._scenario_vehicle.vehicle.is_at_traffic_light()
         # target_reached
         target_reached = (
-            transform.location.distance(self._dest_transform.location)
-            < self._success_dist
+            transform.location.distance(self._dest_transform.location) < self._success_dist
         )
 
         if vehicle_hazard or pedestrian_ahead or redlight_ahead or target_reached:
@@ -106,9 +105,7 @@ class BasicAgent(object):
         return False
 
     def _is_point_on_sidewalk(self, loc):
-        wp = self._map.get_waypoint(
-            loc, project_to_road=False, lane_type=carla.LaneType.Sidewalk
-        )
+        wp = self._map.get_waypoint(loc, project_to_road=False, lane_type=carla.LaneType.Sidewalk)
         if wp is None:
             return False
         else:

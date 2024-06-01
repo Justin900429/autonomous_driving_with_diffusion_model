@@ -78,11 +78,6 @@ class EgoVehicleHandler(object):
             spawn_transform.location.z = wp.transform.location.z + 1.321
 
             carla_vehicle = self._world.try_spawn_actor(blueprint, spawn_transform)
-            carla_vehicle.set_autopilot(True)
-            self._tm.random_left_lanechange_percentage(carla_vehicle, 0)
-            self._tm.random_right_lanechange_percentage(carla_vehicle, 0)
-            self._tm.auto_lane_change(carla_vehicle, False)
-            self._tm.distance_to_leading_vehicle(carla_vehicle, 5.0)
             self._world.tick()
 
             if endless_config is None:
@@ -91,7 +86,7 @@ class EgoVehicleHandler(object):
                 endless = endless_config[ev_id]
             target_transforms = route_config[ev_id][1:]
             self.ego_vehicles[ev_id] = TaskVehicle(
-                carla_vehicle, self._tm, target_transforms, self._spawn_transforms, endless
+                carla_vehicle, target_transforms, self._spawn_transforms, endless
             )
 
             self.reward_handlers[ev_id] = self._build_instance(
@@ -153,8 +148,9 @@ class EgoVehicleHandler(object):
     def apply_control(self, control_dict=None):
         set_camera = False
         for ev_id, control in control_dict.items():
-            if control is not None:
-                self.ego_vehicles[ev_id].vehicle.apply_control(control)
+            if control is None:
+                control = self.ego_vehicles[ev_id].get_control_to_target()
+            self.ego_vehicles[ev_id].vehicle.apply_control(control)
             next_waypoint = self.ego_vehicles[ev_id].get_next_location[0]
 
             if not set_camera:

@@ -5,20 +5,31 @@ import weakref
 import carla
 import numpy as np
 
-from .criteria import (blocked, collision, encounter_light, outside_route_lane,
-                       route_deviation, run_red_light, run_stop_sign)
+from ..scenario_actor.agents.utils.local_planner import LocalPlanner
+from ..scenario_actor.agents.utils.misc import (
+    compute_yaw_difference,
+    is_within_distance_ahead,
+)
+from .criteria import (
+    blocked,
+    collision,
+    encounter_light,
+    outside_route_lane,
+    route_deviation,
+    run_red_light,
+    run_stop_sign,
+)
 from .navigation.global_route_planner import GlobalRoutePlanner
-from .navigation.route_manipulation import (downsample_route,
-                                            location_route_to_gps)
+from .navigation.route_manipulation import downsample_route, location_route_to_gps
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 
 class TaskVehicle(object):
     def __init__(
         self,
         vehicle,
-        traffic_manager,
         target_transforms,
         spawn_transforms,
         endless,
@@ -32,7 +43,6 @@ class TaskVehicle(object):
         world = self.vehicle.get_world()
         self._map = world.get_map()
         self._world = world
-        self._tm = traffic_manager
 
         self.criteria_blocked = blocked.Blocked()
         self.criteria_collision = collision.Collision(self.vehicle, world)
@@ -45,13 +55,14 @@ class TaskVehicle(object):
         self.criteria_route_deviation = route_deviation.RouteDeviation()
 
         # navigation
+        self._proximity_threshold = 12
         self._route_completed = 0.0
         self._route_length = 0.0
 
         self._target_transforms = target_transforms  # transforms
 
         self._planner = GlobalRoutePlanner(self._map, resolution=1.0)
-
+        self._action_planner = LocalPlanner(target_speed=9.5)
         self._global_route = []
         self._global_plan_gps = []
         self._global_plan_world_coord = []
@@ -73,9 +84,10 @@ class TaskVehicle(object):
         ds_ids = downsample_route(route_trace, 50)
 
         self._global_plan_gps += [plan_gps[x] for x in ds_ids]
-        self._global_plan_world_coord += [(route_trace[x][0].transform.location, route_trace[x][1]) for x in ds_ids]
-        self._tm.set_path(self.vehicle, [x[0].transform.location for x in route_trace])
-        
+        self._global_plan_world_coord += [
+            (route_trace[x][0].transform.location, route_trace[x][1]) for x in ds_ids
+        ]
+
     def _add_random_target(self):
         if len(self._target_transforms) == 0:
             last_target_loc = self.vehicle.get_location()
@@ -85,7 +97,9 @@ class TaskVehicle(object):
         else:
             last_target_loc = self._target_transforms[-1].location
             last_road_id = self._map.get_waypoint(last_target_loc).road_id
-            new_target_transform = np.random.choice([x[1] for x in self._spawn_transforms if x[0] != last_road_id])
+            new_target_transform = np.random.choice(
+                [x[1] for x in self._spawn_transforms if x[0] != last_road_id]
+            )
 
         route_trace = self._planner.trace_route(last_target_loc, new_target_transform.location)
         self._global_route += route_trace
@@ -116,21 +130,21 @@ class TaskVehicle(object):
         ev_location = self.vehicle.get_location()
         closest_idx = 0
 
-        for i in range(len(self._global_route)-1):
+        for i in range(len(self._global_route) - 1):
             if i > windows_size:
                 break
 
             loc0 = self._global_route[i][0].transform.location
-            loc1 = self._global_route[i+1][0].transform.location
+            loc1 = self._global_route[i + 1][0].transform.location
 
             wp_dir = loc1 - loc0
             wp_veh = ev_location - loc0
             dot_ve_wp = wp_veh.x * wp_dir.x + wp_veh.y * wp_dir.y + wp_veh.z * wp_dir.z
 
             if dot_ve_wp > 0:
-                closest_idx = i+1
+                closest_idx = i + 1
 
-        distance_traveled = self._compute_route_length(self._global_route[:closest_idx+1])
+        distance_traveled = self._compute_route_length(self._global_route[: closest_idx + 1])
         self._route_completed += distance_traveled
 
         if closest_idx > 0:
@@ -139,9 +153,7 @@ class TaskVehicle(object):
         self._global_route = self._global_route[closest_idx:]
         return distance_traveled
 
-    def _truncate_global_route_till_cumulative_distance(
-        self, min_distance=7, max_distance=50.0
-    ):
+    def _truncate_global_route_till_cumulative_distance(self, min_distance=7, max_distance=50.0):
         ev_location = np.array([self.vehicle.get_location().x, self.vehicle.get_location().y])
         closest_idx = 0
         farthest_in_range = -np.inf
@@ -191,8 +203,8 @@ class TaskVehicle(object):
 
     def tick(self, timestamp):
         # distance_traveled = self._truncate_global_route_till_local_target()
-        distance_traveled   = self._truncate_global_route_till_cumulative_distance()
-        
+        distance_traveled = self._truncate_global_route_till_cumulative_distance()
+
         route_completed = self._is_route_completed()
         if self._endless and route_completed:
             self._add_random_target()
@@ -242,6 +254,84 @@ class TaskVehicle(object):
         self.vehicle.set_light_state(carla.VehicleLightState(vehicle_lights))
 
         return self._info_criteria
+
+    def _is_vehicle_hazard(self, ev_transform, ev_id, vehicle_list):
+        ego_vehicle_location = ev_transform.location
+        ego_vehicle_orientation = ev_transform.rotation.yaw
+
+        for target_vehicle in vehicle_list:
+            if target_vehicle.id == ev_id:
+                continue
+
+            loc = target_vehicle.get_location()
+            ori = target_vehicle.get_transform().rotation.yaw
+
+            if compute_yaw_difference(
+                ego_vehicle_orientation, ori
+            ) <= 150 and is_within_distance_ahead(
+                loc,
+                ego_vehicle_location,
+                ego_vehicle_orientation,
+                self._proximity_threshold,
+                degree=45,
+            ):
+                return True
+
+        return False
+
+    def _is_point_on_sidewalk(self, loc):
+        wp = self._map.get_waypoint(loc, project_to_road=False, lane_type=carla.LaneType.Sidewalk)
+        if wp is None:
+            return False
+        else:
+            return True
+
+    def _is_walker_hazard(self, ev_transform, walkers_list):
+        ego_vehicle_location = ev_transform.location
+
+        for walker in walkers_list:
+            loc = walker.get_location()
+            dist = loc.distance(ego_vehicle_location)
+            degree = 162 / (np.clip(dist, 1.5, 10.5) + 0.3)
+            if self._is_point_on_sidewalk(loc):
+                continue
+
+            if is_within_distance_ahead(
+                loc,
+                ego_vehicle_location,
+                ev_transform.rotation.yaw,
+                self._proximity_threshold,
+                degree=degree,
+            ):
+                return True
+        return False
+
+    def get_control_to_target(self):
+        transform = self.vehicle.get_transform()
+        actor_list = self._world.get_actors()
+        vehicle_list = actor_list.filter("*vehicle*")
+        walkers_list = actor_list.filter("*walker*")
+        vehicle_hazard = self._is_vehicle_hazard(transform, self.vehicle.id, vehicle_list)
+        pedestrian_ahead = self._is_walker_hazard(transform, walkers_list)
+
+        # check red light
+        redlight_ahead = self.vehicle.is_at_traffic_light() and (
+            self.vehicle.get_traffic_light().get_state() == carla.TrafficLightState.Red
+        )
+
+        if vehicle_hazard or pedestrian_ahead or redlight_ahead:
+            throttle, steer, brake = 0.0, 0.0, 1.0
+        else:
+            route_plan = self.route_plan
+            velocity = self.vehicle.get_velocity()
+            forward_vec = transform.get_forward_vector()
+            vel = np.array([velocity.x, velocity.y, velocity.z])
+            f_vec = np.array([forward_vec.x, forward_vec.y, forward_vec.z])
+            forward_speed = np.dot(vel, f_vec)
+            throttle, steer, brake = self._action_planner.run_step(
+                route_plan, transform, forward_speed
+            )
+        return carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
 
     def clean(self):
         self.criteria_collision.clean()
