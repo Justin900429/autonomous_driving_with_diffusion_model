@@ -26,13 +26,14 @@ def collect_loop(num_to_collect, output_dir):
                 "--save-path",
                 output_dir,
                 "--save-num",
-                str(num_to_collect - cur_num),
+                str(num_to_collect),
                 "--off-screen",
             ]
         )
         while process.poll() is None:
             pass
         cur_num = count_current_saved(output_dir)
+        print(f"Current collected: {cur_num}/{num_to_collect}")
 
 
 if __name__ == "__main__":
