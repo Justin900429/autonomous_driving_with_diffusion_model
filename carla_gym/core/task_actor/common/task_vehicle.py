@@ -1,6 +1,4 @@
-import copy
 import logging
-import weakref
 
 import carla
 import numpy as np
