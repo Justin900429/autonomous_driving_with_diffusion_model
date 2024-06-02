@@ -45,15 +45,14 @@ python misc/collect_loop.py --save-path data/ --save-num 5000
 
 This help restart the simulation when the simulation is crashed but the number of data does not reach the target.
 
-
 ## Usage
 
 ## Model training 🧠
 
 ```shell
 # with single-gpu
-python main.py --config configs/default.yaml
+python train.py --config configs/default.yaml
 
 # with multi-gpus
-accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} main.py --config configs/default.yaml
+accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} train.py --config configs/default.yaml
 ```
