@@ -82,15 +82,15 @@ def create_cfg():
     cfg.CONTROL.BRAKE_SPEED = 0.4
     cfg.CONTROL.BRAKE_RATIO = 1.1
     cfg.CONTROL.CLIP_DELTA = 0.25
-    cfg.CONTROL.MAX_THROTTLE = 0.75
+    cfg.CONTROL.MAX_THROTTLE = 9
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()
     cfg.EVAL.BATCH_SIZE = 4
     cfg.EVAL.ETA = 0
     cfg.EVAL.CHECKPOINT = None
-    cfg.EVAL.SCHEDULER = "ddpm"
-    cfg.EVAL.SAMPLE_STEPS = 100
+    cfg.EVAL.SCHEDULER = "dpm"
+    cfg.EVAL.SAMPLE_STEPS = 10
     return cfg
 
 
