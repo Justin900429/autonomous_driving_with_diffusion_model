@@ -18,7 +18,7 @@ def create_cfg():
     # ======= Model setup =======
     cfg.MODEL = CN()
     cfg.MODEL.HORIZON = 16
-    cfg.MODEL.TRANSITION_DIM = 2
+    cfg.MODEL.TRANSITION_DIM = 5
     cfg.MODEL.USE_ATTN = False
     cfg.MODEL.DIM = 64
     cfg.MODEL.DIM_MULTS = (1, 2, 4, 8)
@@ -61,7 +61,7 @@ def create_cfg():
     cfg.TRAIN.NOISE_SCHEDULER.BETA_START = 1e-4
     cfg.TRAIN.NOISE_SCHEDULER.BETA_END = 0.02
     cfg.TRAIN.NOISE_SCHEDULER.TYPE = "squaredcos_cap_v2"
-    cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE = "epsilon"
+    cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE = "sample"
 
     # ======= PID setup =======
     cfg.PID = CN()

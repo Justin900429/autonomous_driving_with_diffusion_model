@@ -32,12 +32,12 @@ class TrajDataset(torch.utils.data.Dataset):
 
         waypoint_name = os.path.join(self.root_path, "waypoints", f"{idx:06d}.txt")
         with open(waypoint_name, "r") as f:
-            self.waypoints = f.readlines()
+            waypoints = f.readlines()
 
         waypoints = torch.tensor(
             [
                 list(map(float, line.strip().split()))
-                for line in self.waypoints
+                for line in waypoints
                 if len(line.strip()) != 0
             ]
         )
