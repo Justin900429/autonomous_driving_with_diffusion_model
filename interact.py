@@ -1,5 +1,6 @@
 import argparse
 import math
+import os
 import time
 
 import cv2
@@ -27,6 +28,7 @@ SCHEDULER_FUNC = {
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None, type=str)
+    parser.add_argument("--save-bev-path", default=None, type=str)
     parser.add_argument("--opts", nargs=argparse.REMAINDER, default=None, type=str)
     return parser.parse_args()
 
@@ -48,7 +50,7 @@ def get_random_seed():
 
 
 class Agent:
-    def __init__(self, cfg, off_screen=False, seed=None):
+    def __init__(self, cfg, bev_save_path=None, off_screen=False, seed=None):
         with initialize(config_path="configs", version_base="1.3.2"):
             env_config = compose(config_name=cfg.ENV.CONFIG_PATH)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,7 +59,9 @@ class Agent:
             env_config, self.server_manager, get_random_seed() if seed is None else seed
         )
         self.cfg = cfg
-
+        self.bev_save_path = bev_save_path
+        if bev_save_path:
+            os.makedirs(bev_save_path, exist_ok=True)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.image_transform = T.Compose(
             [
@@ -90,8 +94,6 @@ class Agent:
             del weight
             torch.cuda.empty_cache()
             print("weights are loaded")
-
-        self.count = 0
 
     @torch.inference_mode()
     def generate_traj(self, image):
@@ -174,26 +176,27 @@ class Agent:
 
         return np.array([throttle_res, steer_res, brake_res])
 
-    def plot_to_bev(self, bev_image, traj):
+    def plot_to_bev(self, bev_image, traj, filename="test.jpg"):
         for x, y in traj:
             x, y = x / self.model.magic_num * -1, y / self.model.magic_num
             pixel_x = way_point_to_pixel(x.item())
             pixel_y = way_point_to_pixel(y.item())
             bev_image = cv2.circle(bev_image, (pixel_x, pixel_y), 3, (0, 0, 255), -1)
         cv2.imwrite(
-            f"test/{self.count:04d}.jpg", cv2.cvtColor(bev_image, cv2.COLOR_RGB2BGR)
+            filename, cv2.cvtColor(bev_image, cv2.COLOR_RGB2BGR)
         )
-        self.count += 1
 
     def run(self):
         state = self.env.reset()
         done = False
+        count = 0
 
         while True:
             image = self.process_image(state["camera"][0])
             bev_image = state["bev"][0]
             traj = self.generate_traj(image)
-            self.plot_to_bev(bev_image, traj[0])
+            if self.bev_save_path:
+                self.plot_to_bev(bev_image, traj[0], f"{self.bev_save_path}/bev_{count}.jpg")
             control = self.process_control(traj, state)
             input_control = {0: control}
             state, *_ = self.env.step(input_control)
@@ -215,5 +218,5 @@ if __name__ == "__main__":
         cfg.merge_from_list(args.opts)
     show_config(cfg)
 
-    agent = Agent(cfg)
+    agent = Agent(cfg, args.save_bev_path)
     agent.run()
