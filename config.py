@@ -12,7 +12,10 @@ def create_cfg():
     cfg.PROJECT_NAME = "carla_diffusion"
     cfg.PROJECT_DIR = None
 
-    # ##### Model setup #####
+    cfg.ENV = CN()
+    cfg.ENV.CONFIG_PATH = "data_collect"
+
+    # ======= Model setup =======
     cfg.MODEL = CN()
     cfg.MODEL.HORIZON = 16
     cfg.MODEL.TRANSITION_DIM = 2
@@ -21,7 +24,7 @@ def create_cfg():
     cfg.MODEL.DIM_MULTS = (1, 2, 4, 8)
     cfg.MODEL.DIFFUSER_BUILDING_BLOCK = "concat"
 
-    # ###### Training set ######
+    # ======== Training set =======
     cfg.TRAIN = CN()
 
     # Log and save
@@ -59,6 +62,27 @@ def create_cfg():
     cfg.TRAIN.NOISE_SCHEDULER.BETA_END = 0.02
     cfg.TRAIN.NOISE_SCHEDULER.TYPE = "squaredcos_cap_v2"
     cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE = "epsilon"
+
+    # ======= PID setup =======
+    cfg.PID = CN()
+    cfg.PID.TURN_KP = 1
+    cfg.PID.TURN_KI = 0.5
+    cfg.PID.TURN_KD = 1.0
+    cfg.PID.TURN_N = 40
+    cfg.PID.SPEED_KP = 5
+    cfg.PID.SPEED_KI = 0.5
+    cfg.PID.SPEED_KD = 1.0
+    cfg.PID.SPEED_N = 40
+
+    # ====== Control setup ======
+    cfg.CONTROL = CN()
+    cfg.CONTROL.AIM_DIST = 4.0
+    cfg.CONTROL.ANGLE_THRESH = 0.3
+    cfg.CONTROL.DIST_THRESH = 10
+    cfg.CONTROL.BRAKE_SPEED = 0.4
+    cfg.CONTROL.BRAKE_RATIO = 1.1
+    cfg.CONTROL.CLIP_DELTA = 0.25
+    cfg.CONTROL.MAX_THROTTLE = 0.75
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()

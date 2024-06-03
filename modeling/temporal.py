@@ -1,10 +1,19 @@
+from collections import deque
+
 import einops
 import torch
 import torch.nn as nn
 from einops.layers.torch import Rearrange
 
-from .helpers import (Conv1dBlock, Downsample1d, LinearAttention, PreNorm,
-                      Residual, SinusoidalPosEmb, Upsample1d)
+from .helpers import (
+    Conv1dBlock,
+    Downsample1d,
+    LinearAttention,
+    PreNorm,
+    Residual,
+    SinusoidalPosEmb,
+    Upsample1d,
+)
 from .resnet import resnet34
 
 
@@ -88,14 +97,20 @@ class TemporalMapUnet(nn.Module):
                 nn.ModuleList(
                     [
                         ResidualTemporalMapBlock(
-                            dim_in, dim_out, embed_dim=cond_dim,
+                            dim_in,
+                            dim_out,
+                            embed_dim=cond_dim,
                         ),
                         ResidualTemporalMapBlock(
-                            dim_out, dim_out, embed_dim=cond_dim,
+                            dim_out,
+                            dim_out,
+                            embed_dim=cond_dim,
                         ),
-                        Residual(PreNorm(dim_out, LinearAttention(dim_out)))
-                        if attention
-                        else nn.Identity(),
+                        (
+                            Residual(PreNorm(dim_out, LinearAttention(dim_out)))
+                            if attention
+                            else nn.Identity()
+                        ),
                         Downsample1d(dim_out) if not is_last else nn.Identity(),
                     ]
                 )
@@ -106,15 +121,17 @@ class TemporalMapUnet(nn.Module):
 
         mid_dim = dims[-1]
         self.mid_block1 = ResidualTemporalMapBlock(
-            mid_dim, mid_dim, embed_dim=cond_dim,
+            mid_dim,
+            mid_dim,
+            embed_dim=cond_dim,
         )
         self.mid_attn = (
-            Residual(PreNorm(mid_dim, LinearAttention(mid_dim)))
-            if attention
-            else nn.Identity()
+            Residual(PreNorm(mid_dim, LinearAttention(mid_dim))) if attention else nn.Identity()
         )
         self.mid_block2 = ResidualTemporalMapBlock(
-            mid_dim, mid_dim, embed_dim=cond_dim,
+            mid_dim,
+            mid_dim,
+            embed_dim=cond_dim,
         )
 
         final_up_dim = None
@@ -130,11 +147,15 @@ class TemporalMapUnet(nn.Module):
                             embed_dim=cond_dim,
                         ),
                         ResidualTemporalMapBlock(
-                            dim_in, dim_in, embed_dim=cond_dim,
+                            dim_in,
+                            dim_in,
+                            embed_dim=cond_dim,
                         ),
-                        Residual(PreNorm(dim_out, LinearAttention(dim_out)))
-                        if attention
-                        else nn.Identity(),
+                        (
+                            Residual(PreNorm(dim_out, LinearAttention(dim_out)))
+                            if attention
+                            else nn.Identity()
+                        ),
                         Upsample1d(dim_in) if not is_last else nn.Identity(),
                     ]
                 )
@@ -148,6 +169,7 @@ class TemporalMapUnet(nn.Module):
             Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
             nn.Conv1d(final_up_dim, transition_dim, 1),
         )
+        self.magic_num = 23.315
 
     def forward(self, x, img, time):
         """
