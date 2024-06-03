@@ -102,7 +102,7 @@ def evaluate(
         else:
             trajs = noise_scheduler.step(model_output, t, trajs).prev_sample
 
-    trajs = trajs.to(torch.float32).clamp(-1, 1)
+    trajs = trajs[..., :2].to(torch.float32).clamp(-1, 1)
     bev_image = np.array(Image.open(front_image_name.replace("front", "bev")).convert("RGB"))
     for color_idx, traj in enumerate(trajs):
         for x, y in traj:
