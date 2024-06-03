@@ -81,6 +81,10 @@ class Agent:
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
         self.step_to_reset = step_to_reset
+        
+    def do_buffer(self, num_buffer):
+        for _ in range(num_buffer):
+            self.env.step({0: None})
 
     def run(self):
         state = self.env.reset()
@@ -92,6 +96,8 @@ class Agent:
         count_to_collect = 0
         step_to_reset = 0
 
+        self.do_buffer(self.buffer_frames)
+                    
         while self.cur_save < self.total_to_save:
             input_control = {0: None}
             state, _, done, *_ = self.env.step(input_control)
@@ -105,6 +111,7 @@ class Agent:
                 cur_traj.clear()
                 count_to_collect = 0
                 step_to_reset = 0
+                self.do_buffer(self.buffer_frames)
                 continue
 
             if state["at_red_light"][0] == 1 and prev_red:
@@ -167,10 +174,7 @@ class Agent:
                     step_to_reset = 0
 
                 # Skip the next 50 frames to increase the diversity of the data
-                while buffer_frame < self.buffer_frames:
-                    state, *_ = self.env.step(input_control)
-                    buffer_frame += 1
-                buffer_frame = 0
+                self.do_buffer(self.buffer_frames)
             step_to_reset += 1
 
         self.server_manager.stop()
