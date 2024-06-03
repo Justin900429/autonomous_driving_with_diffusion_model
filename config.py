@@ -35,7 +35,7 @@ def create_cfg():
     cfg.TRAIN.IMAGE_WIDTH = 900
 
     # Training iteration
-    cfg.TRAIN.BATCH_SIZE = 4
+    cfg.TRAIN.BATCH_SIZE = 32
     cfg.TRAIN.NUM_WORKERS = 4
     cfg.TRAIN.MAX_ITER = 100000
     cfg.TRAIN.GRADIENT_ACCUMULATION_STEPS = 1
@@ -66,7 +66,6 @@ def create_cfg():
     cfg.EVAL.ETA = 0
     cfg.EVAL.CHECKPOINT = None
     cfg.EVAL.SCHEDULER = "ddpm"
-    cfg.EVAL.GUIDANCE = 1.5
     cfg.EVAL.SAMPLE_STEPS = 100
     return cfg
 

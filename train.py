@@ -37,7 +37,7 @@ COLOR_LIST = [
     (181, 221, 146),
     (244, 41, 112),
     (154, 162, 254),
-    (174, 6, 136)
+    (174, 6, 136),
 ]
 
 
@@ -85,20 +85,18 @@ def evaluate(
     front_images = glob.glob(os.path.join(cfg.TRAIN.ROOT, "front", "*.png"))
 
     front_image_name = random.choice(front_images)
-    front_image = torch.stack(
-        [
-            img_transform(Image.open(front_image_name).convert("RGB"))
-        ]
-    ).to(device)
+    front_image = (
+        torch.stack([img_transform(Image.open(front_image_name).convert("RGB"))])
+        .to(device)
+        .repeat(num_traj, 1, 1, 1)
+    )
 
     noise_scheduler.set_timesteps(cfg.EVAL.SAMPLE_STEPS, device=device)
     for t in tqdm(noise_scheduler.timesteps):
-        model_output = (
-            unet(
-                trajs,
-                front_image,
-                t.reshape(-1),
-            )
+        model_output = unet(
+            trajs,
+            front_image,
+            t.reshape(-1).repeat(num_traj),
         )
         if cfg.EVAL.SCHEDULER == "ddim":
             trajs = noise_scheduler.step(
@@ -114,9 +112,7 @@ def evaluate(
             color = COLOR_LIST[color_idx % len(COLOR_LIST)]
             pixel_x = way_point_to_pixel(x.item())
             pixel_y = way_point_to_pixel(y.item())
-            bev_image = cv2.circle(
-                bev_image, (pixel_x, pixel_y), 3, color, -1
-            )
+            bev_image = cv2.circle(bev_image, (pixel_x, pixel_y), 3, color, -1)
 
     if filename is not None:
         Image.fromarray(bev_image).save(filename)
@@ -189,9 +185,7 @@ def main(args):
     )
 
     # Build optimizer
-    optimizer = optim.AdamW(
-        model.parameters(), lr=cfg.TRAIN.LR, betas=(0.95, 0.999), eps=1e-7
-    )
+    optimizer = optim.AdamW(model.parameters(), lr=cfg.TRAIN.LR, betas=(0.95, 0.999), eps=1e-7)
     lr_scheduler = get_constant_schedule_with_warmup(
         optimizer=optimizer,
         num_warmup_steps=cfg.TRAIN.LR_WARMUP,
@@ -218,7 +212,7 @@ def main(args):
         torch.cuda.empty_cache()
 
     weight_dtype = torch.float32
-    
+
     if args.generate_only:
         unet = accelerator.unwrap_model(model)
         ema_model.copy_to(unet.parameters())
@@ -250,9 +244,7 @@ def main(args):
         imgs = imgs.to(weight_dtype)
         trajs = trajs.to(weight_dtype)
 
-        t = torch.randint(
-            0, cfg.TRAIN.TIME_STEPS, (trajs.shape[0],), device=device
-        ).long()
+        t = torch.randint(0, cfg.TRAIN.TIME_STEPS, (trajs.shape[0],), device=device).long()
         noise = torch.randn_like(trajs, dtype=weight_dtype)
         noise_data = noise_scheduler.add_noise(trajs, noise, t)
 
@@ -261,6 +253,8 @@ def main(args):
 
             if cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE == "epsilon":
                 loss = torch.nn.functional.mse_loss(pred.float(), noise.float())
+            elif cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE == "sample":
+                loss = torch.nn.functional.mse_loss(pred.float(), trajs.float())
             else:
                 raise ValueError("Not supported prediction type.")
 
@@ -268,9 +262,7 @@ def main(args):
             if accelerator.sync_gradients:
                 for param in model.parameters():
                     if param.grad is not None:
-                        torch.nan_to_num(
-                            param.grad, nan=0, posinf=1e5, neginf=-1e5, out=param.grad
-                        )
+                        torch.nan_to_num(param.grad, nan=0, posinf=1e5, neginf=-1e5, out=param.grad)
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad()
@@ -299,10 +291,7 @@ def main(args):
             start = time.time()
 
         if (
-            (
-                ((cur_iter + 1) % cfg.TRAIN.SAVE_INTERVAL == 0)
-                or (cur_iter + 1 == max_iter)
-            )
+            (((cur_iter + 1) % cfg.TRAIN.SAVE_INTERVAL == 0) or (cur_iter + 1 == max_iter))
             and accelerator.is_main_process
             and accelerator.sync_gradients
         ):
@@ -314,24 +303,17 @@ def main(args):
                 "ema_state_dict": ema_model.state_dict(),
             }
             save_name = (
-                f"checkpoint_{cur_iter + 1}.pth"
-                if cur_iter + 1 != max_iter
-                else "final.pth"
+                f"checkpoint_{cur_iter + 1}.pth" if cur_iter + 1 != max_iter else "final.pth"
             )
             torch.save(state_dict, osp.join(cfg.PROJECT_DIR, "checkpoints", save_name))
             logger.info(f"Save checkpoint to {save_name}...")
 
         if (
             accelerator.is_main_process
-            and (
-                ((cur_iter + 1) % cfg.TRAIN.SAMPLE_INTERVAL == 0)
-                or (cur_iter + 1 == max_iter)
-            )
+            and (((cur_iter + 1) % cfg.TRAIN.SAMPLE_INTERVAL == 0) or (cur_iter + 1 == max_iter))
             and accelerator.sync_gradients
         ):
-            filename = osp.join(
-                cfg.PROJECT_DIR, "generate", f"iter_{cur_iter + 1:03d}.png"
-            )
+            filename = osp.join(cfg.PROJECT_DIR, "generate", f"iter_{cur_iter + 1:03d}.png")
             unet = accelerator.unwrap_model(model)
             ema_model.store(unet.parameters())
             ema_model.copy_to(unet.parameters())

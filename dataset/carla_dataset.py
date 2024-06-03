@@ -17,7 +17,7 @@ class TrajDataset(torch.utils.data.Dataset):
             self.augmentor_func = img_augment_func
             self.count_access = 0
         self.root_path = root_path
-        self.front_image = list(glob.glob(os.path.join(root_path, "front/*.png")))
+        self.front_image = sorted(list(glob.glob(os.path.join(root_path, "front/*.png"))))
 
     def __len__(self):
         return len(self.front_image)
@@ -29,12 +29,18 @@ class TrajDataset(torch.utils.data.Dataset):
             self.count_access += 1
             img = self.augmentor_func(self.count_access).augment_image(img)
         img = self.img_transforms(img)
-        
+
         waypoint_name = os.path.join(self.root_path, "waypoints", f"{idx:06d}.txt")
         with open(waypoint_name, "r") as f:
             self.waypoints = f.readlines()
-        
-        waypoints = torch.tensor([list(map(float, line.strip().split())) for line in self.waypoints if len(line.strip()) != 0])
+
+        waypoints = torch.tensor(
+            [
+                list(map(float, line.strip().split()))
+                for line in self.waypoints
+                if len(line.strip()) != 0
+            ]
+        )
         waypoints = waypoints.clip(-1, 1)
         assert len(waypoints) == 16
         return img, waypoints
