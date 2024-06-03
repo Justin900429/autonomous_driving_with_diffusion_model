@@ -145,7 +145,7 @@ def main(args):
     if accelerator.is_main_process:
         os.makedirs(osp.join(cfg.PROJECT_DIR, "checkpoints"), exist_ok=True)
         os.makedirs(osp.join(cfg.PROJECT_DIR, "generate"), exist_ok=True)
-
+    logger.add(osp.join(cfg.PROJECT_DIR, "train.log"))
     # Build model
     model = build_model(cfg)
 
