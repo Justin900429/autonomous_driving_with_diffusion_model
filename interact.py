@@ -1,5 +1,6 @@
 import argparse
 import math
+import time
 
 import cv2
 import numpy as np
@@ -11,7 +12,7 @@ from torchvision import transforms as T
 
 from config import create_cfg, merge_possible_with_base, show_config
 from control import Controller
-from misc.create_agent import create_env
+from misc.create_agent import create_env, create_server
 from misc.load_param import copy_parameters
 from modeling import build_model
 
@@ -23,12 +24,26 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_random_seed():
+    t = int(time.time() * 1000.0)
+    t = (
+        ((t & 0xFF000000) >> 24)
+        + ((t & 0x00FF0000) >> 8)
+        + ((t & 0x0000FF00) << 8)
+        + ((t & 0x000000FF) << 24)
+    )
+    return t
+
+
 class Agent:
-    def __init__(self, cfg):
-        with initialize(config_path="configs"):
+    def __init__(self, cfg, off_screen=False, seed=None):
+        with initialize(config_path="configs", version_base="1.3.2"):
             env_config = compose(config_name=cfg.ENV.CONFIG_PATH)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.env, self.server_manager = create_env(env_config)
+        self.server_manager = create_server(env_config, off_screen)
+        self.env = create_env(
+            env_config, self.server_manager, get_random_seed() if seed is None else seed
+        )
         self.cfg = cfg
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +64,7 @@ class Agent:
             beta_end=cfg.TRAIN.NOISE_SCHEDULER.BETA_END,
             clip_sample=False,
         )
-        self.model = build_model(cfg)
+        self.model = build_model(cfg).to(self.device)
         if cfg.EVAL.CHECKPOINT:
             weight = torch.load(cfg.EVAL.CHECKPOINT, map_location=self.device)
             self.model.load_state_dict(weight["state_dict"])
@@ -156,7 +171,6 @@ class Agent:
             if done:
                 break
         self.server_manager.stop()
-        print("Finished!")
 
     def __del__(self):
         self.server_manager.stop()

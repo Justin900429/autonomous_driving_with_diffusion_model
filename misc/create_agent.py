@@ -4,12 +4,13 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import gymnasium as gym
-import server_utils
 from omegaconf import DictConfig, OmegaConf
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from carla_gym.utils import config_utils
+
+from . import server_utils
 
 
 def create_server(cfg: DictConfig, off_screen: bool = False) -> server_utils.CarlaServerManager:
