@@ -29,7 +29,7 @@ class Controller:
     def control_pid(self, waypoints, velocity, target):
         waypoints = waypoints[0].data.cpu().numpy()
         target = target.squeeze().data.cpu().numpy()
-        waypoints *= -1
+        waypoints[:, 0] *= -1
         target[1] *= -1
         num_pairs = len(waypoints) - 1
         best_norm = 1e5
