@@ -6,7 +6,8 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional
-from diffusers.schedulers import DDPMScheduler
+from diffusers.schedulers import (DDIMScheduler, DDPMScheduler,
+                                  DPMSolverMultistepScheduler)
 from hydra import compose, initialize
 from torchvision import transforms as T
 
@@ -16,12 +17,23 @@ from misc.create_agent import create_env, create_server
 from misc.load_param import copy_parameters
 from modeling import build_model
 
+SCHEDULER_FUNC = {
+    "ddpm": DDPMScheduler,
+    "ddim": DDIMScheduler,
+    "dpm": DPMSolverMultistepScheduler,
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None, type=str)
     parser.add_argument("--opts", nargs=argparse.REMAINDER, default=None, type=str)
     return parser.parse_args()
+
+
+def way_point_to_pixel(waypoint):
+    pixel_val = waypoint * 256
+    return int(256 - pixel_val)
 
 
 def get_random_seed():
@@ -55,23 +67,31 @@ class Agent:
         )
 
         self.controller = Controller(cfg)
-        self.noise_scheduler = DDPMScheduler(
+        scheduler_kwargs = dict(
             num_train_timesteps=cfg.TRAIN.SAMPLE_STEPS,
             prediction_type=cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE,
             beta_schedule=cfg.TRAIN.NOISE_SCHEDULER.TYPE,
             # For linear only
             beta_start=cfg.TRAIN.NOISE_SCHEDULER.BETA_START,
             beta_end=cfg.TRAIN.NOISE_SCHEDULER.BETA_END,
-            clip_sample=False,
+            thresholding=True,
         )
+
+        if cfg.EVAL.SCHEDULER == "dpm":
+            scheduler_kwargs["lambda_min_clipped"] = -5.1
+        self.noise_scheduler = SCHEDULER_FUNC[cfg.EVAL.SCHEDULER](**scheduler_kwargs)
         self.model = build_model(cfg).to(self.device)
         if cfg.EVAL.CHECKPOINT:
             weight = torch.load(cfg.EVAL.CHECKPOINT, map_location=self.device)
             self.model.load_state_dict(weight["state_dict"])
-            copy_parameters(weight["ema_state_dict"]["shadow_params"], self.model.parameters())
+            copy_parameters(
+                weight["ema_state_dict"]["shadow_params"], self.model.parameters()
+            )
             del weight
             torch.cuda.empty_cache()
-            print("weights are laoded")
+            print("weights are loaded")
+
+        self.count = 0
 
     @torch.inference_mode()
     def generate_traj(self, image):
@@ -84,7 +104,9 @@ class Agent:
         trajs = torch.randn(traj_shape, device=self.device)
         image = image.to(self.device)
 
-        self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
+        self.noise_scheduler.set_timesteps(
+            self.cfg.EVAL.SAMPLE_STEPS, device=self.device
+        )
         for t in self.noise_scheduler.timesteps:
             model_output = self.model(
                 trajs,
@@ -92,7 +114,9 @@ class Agent:
                 t.reshape(-1),
             )
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
-        trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_number
+        trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_num
+        trajs[..., 0] *= -1
+
         return trajs
 
     def process_image(self, image):
@@ -113,18 +137,18 @@ class Agent:
         )
         local_command_point = R.T.dot(local_command_point)
 
-        target_point = torch.FloatTensor([[local_command_point[0], local_command_point[1]]]).to(
-            self.device
-        )
+        target_point = torch.FloatTensor(
+            [[local_command_point[0], local_command_point[1]]]
+        ).to(self.device)
         return target_point
 
     def process_next_command(self, command):
         if command < 0:
             command = 4
         command -= 1
-        one_hot_command = torch.nn.functional.one_hot(torch.tensor([command]), num_classes=6).to(
-            self.device, dtype=torch.float32
-        )
+        one_hot_command = torch.nn.functional.one_hot(
+            torch.tensor([command]), num_classes=6
+        ).to(self.device, dtype=torch.float32)
 
         return one_hot_command
 
@@ -132,10 +156,12 @@ class Agent:
         speed = torch.FloatTensor([[speed]]).to(self.device)
         return speed
 
-    def process_control(self, pred, state, target_point):
-        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(self.device, dtype=torch.float32)
+    def process_control(self, traj, state):
+        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(
+            self.device, dtype=torch.float32
+        )
         steer_res, throttle_res, brake_res = self.controller.control_pid(
-            pred, gt_velocity, target_point
+            traj[:, :3], gt_velocity, traj[0][3]
         )
 
         if brake_res < 0.05:
@@ -146,11 +172,18 @@ class Agent:
         if brake_res > 0.5:
             throttle_res = float(0)
 
-        num = 0
-        for s in self.last_steers:
-            num += s > 0.10
-
         return np.array([throttle_res, steer_res, brake_res])
+
+    def plot_to_bev(self, bev_image, traj):
+        for x, y in traj:
+            x, y = x / self.model.magic_num * -1, y / self.model.magic_num
+            pixel_x = way_point_to_pixel(x.item())
+            pixel_y = way_point_to_pixel(y.item())
+            bev_image = cv2.circle(bev_image, (pixel_x, pixel_y), 3, (0, 0, 255), -1)
+        cv2.imwrite(
+            f"test/{self.count:04d}.jpg", cv2.cvtColor(bev_image, cv2.COLOR_RGB2BGR)
+        )
+        self.count += 1
 
     def run(self):
         state = self.env.reset()
@@ -158,14 +191,10 @@ class Agent:
 
         while True:
             image = self.process_image(state["camera"][0])
-            target_point = self.process_next_waypoint(
-                next_point=state["next_waypoint"],
-                cur_point=state["cur_waypoint"],
-                yaw=state["state"][0][1],
-            )
-
+            bev_image = state["bev"][0]
             traj = self.generate_traj(image)
-            control = self.process_control(traj, state, target_point)
+            self.plot_to_bev(bev_image, traj[0])
+            control = self.process_control(traj, state)
             input_control = {0: control}
             state, *_ = self.env.step(input_control)
             if done:
