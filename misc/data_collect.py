@@ -96,6 +96,7 @@ class Agent:
             input_control = {0: None}
             state, _, done, *_ = self.env.step(input_control)
             cur_pos = state["cur_waypoint"][0]
+            cur_control = state["state"][0][2:5]
             camera = state["camera"][0]
             bev = state["bev"][0]
 
@@ -121,19 +122,21 @@ class Agent:
 
                 if state["at_red_light"][0] == 1:
                     for _ in range(self.total_frame_should_pass - 1):
-                        cur_traj.append(cur_pos)
+                        cur_traj.append(np.concatenate([cur_pos, np.array([0.0, 0.0, 1.0])]))
                         prev_red = True
                 else:
                     prev_red = False
 
-            cur_traj.append(cur_pos)
+            cur_traj.append(np.concatenate((cur_pos, cur_control)))
 
             if len(cur_traj) != self.total_frame_should_pass:
                 count_to_collect += 1
             else:
                 save_bev_path = os.path.join(self.save_root, "bev", f"{self.cur_save:06d}.png")
                 added_traj = []
-                for traj in cur_traj:
+                for traj_action in cur_traj:
+                    traj = traj_action[:2]
+                    action = traj_action[2:]
                     theta = init_compass + np.pi / 2
                     R = np.array(
                         [
@@ -148,12 +151,12 @@ class Agent:
                     target_bev = cv2.circle(
                         target_bev, (int(pixel_x), int(pixel_y)), 3, (0, 255, 0), -1
                     )
-                    added_traj.append((traj[1] / self.magic_number, -traj[0] / self.magic_number))
+                    added_traj.append((traj[1] / self.magic_number, -traj[0] / self.magic_number, *action.tolist()))
                 with open(
                     os.path.join(self.save_root, "waypoints", f"{self.cur_save:06d}.txt"), "w"
                 ) as f:
                     for traj in added_traj:
-                        f.write(f"{traj[0]} {traj[1]}\n")
+                        f.write(f"{traj[0]} {traj[1]} {traj[2]} {traj[3]} {traj[4]}\n")
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1

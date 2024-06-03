@@ -9,8 +9,7 @@ from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from carla_gym.utils import config_utils
-
-from . import server_utils
+from misc import server_utils
 
 
 def create_server(cfg: DictConfig, off_screen: bool = False) -> server_utils.CarlaServerManager:
