@@ -1,5 +1,4 @@
 import glob
-import json
 import os
 from typing import Callable
 
@@ -35,11 +34,7 @@ class TrajDataset(torch.utils.data.Dataset):
             waypoints = f.readlines()
 
         waypoints = torch.tensor(
-            [
-                list(map(float, line.strip().split()))
-                for line in waypoints
-                if len(line.strip()) != 0
-            ]
+            [list(map(float, line.strip().split())) for line in waypoints if len(line.strip()) != 0]
         )
         waypoints = waypoints.clip(-1, 1)
         assert len(waypoints) == 16
