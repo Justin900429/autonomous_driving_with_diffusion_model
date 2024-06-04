@@ -244,7 +244,7 @@ def main(args):
         t = torch.randint(0, cfg.TRAIN.TIME_STEPS, (trajs.shape[0],), device=device).long()
         noise = torch.randn_like(trajs, dtype=weight_dtype)
         noise_data = noise_scheduler.add_noise(trajs, noise, t)
-
+        noise_data[..., 0, :2] = trajs[..., 0, :2]
         with accelerator.accumulate(model):
             pred = model(noise_data, imgs, t)
 
