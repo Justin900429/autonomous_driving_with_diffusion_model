@@ -100,7 +100,7 @@ class Agent:
             torch.cuda.empty_cache()
             print("weights are loaded")
 
-    def generate_traj(self, image, target=None):
+    def generate_traj(self, image, yaw, target=None):
         self.model.eval()
         traj_shape = (
             1,
@@ -109,6 +109,9 @@ class Agent:
         )
         trajs = torch.randn(traj_shape, device=self.device)
         image = image.to(self.device)
+        
+        trajs[:, 0, :2] = 0.
+        trajs[:, 0, 3] = yaw
 
         self.noise_scheduler.set_timesteps(
             self.cfg.EVAL.SAMPLE_STEPS, device=self.device
@@ -126,6 +129,8 @@ class Agent:
                 model_std = torch.exp(0.5 * posterior_variance)
                 model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
+            trajs[:, 0, :2] = 0.
+            trajs[:, 0, 3] = yaw
             prev_t = t
             
         trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_num
@@ -211,7 +216,8 @@ class Agent:
                     yaw=state["compass"][0],
                 )
             bev_image = state["bev"][0]
-            traj = self.generate_traj(image, target_point if self.use_guidance else None)
+            yaw = state["compass"][0] + math.pi / 2.0
+            traj = self.generate_traj(image, yaw, target_point if self.use_guidance else None)
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1
