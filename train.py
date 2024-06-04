@@ -272,7 +272,7 @@ def main(args):
             and accelerator.is_main_process
             and accelerator.sync_gradients
         ):
-            iter_time.update(time.time() - start)
+            iter_time.update((time.time() - start) / cfg.TRAIN.LOG_INTERVAL)
             loss_meter.update({"loss": loss.item()})
             nb_future_iters = max_iter - (cur_iter + 1)
             eta_seconds = iter_time.avg * nb_future_iters
