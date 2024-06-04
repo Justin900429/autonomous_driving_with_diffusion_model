@@ -79,6 +79,7 @@ def evaluate(
         cfg.MODEL.TRANSITION_DIM,
     )
     trajs = torch.randn(traj_shape, device=device)
+    trajs[:, 0, :2] = 0
     front_images = glob.glob(os.path.join(cfg.TRAIN.ROOT, "front", "*.png"))
 
     front_image_name = random.choice(front_images)
@@ -101,6 +102,7 @@ def evaluate(
             ).prev_sample
         else:
             trajs = noise_scheduler.step(model_output, t, trajs).prev_sample
+        trajs[:, 0, :2] = 0
 
     trajs = trajs[..., :2].to(torch.float32).clamp(-1, 1)
     bev_image = np.array(Image.open(front_image_name.replace("front", "bev")).convert("RGB"))
