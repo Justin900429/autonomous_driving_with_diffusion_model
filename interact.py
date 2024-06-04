@@ -83,7 +83,7 @@ class Agent:
             # For linear only
             beta_start=cfg.TRAIN.NOISE_SCHEDULER.BETA_START,
             beta_end=cfg.TRAIN.NOISE_SCHEDULER.BETA_END,
-            thresholding=True,
+            # thresholding=True,
         )
 
         if cfg.EVAL.SCHEDULER == "dpm":
@@ -143,7 +143,7 @@ class Agent:
             yaw = 0.0
 
         yaw = yaw + math.pi / 2.0
-        R = np.array([[math.cos(yaw), -math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]])
+        R = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
 
         local_command_point = np.array(
             [next_point[0][0] - cur_point[0][0], next_point[0][1] - cur_point[0][1]]
@@ -174,7 +174,7 @@ class Agent:
             self.device, dtype=torch.float32
         )
         steer_res, throttle_res, brake_res = self.controller.control_pid(
-            traj[:, :-1], gt_velocity, target_point
+            traj[:, :-1, :2], gt_velocity, target_point
         )
 
         if brake_res < 0.05:
@@ -213,9 +213,12 @@ class Agent:
             bev_image = state["bev"][0]
             traj = self.generate_traj(image, target_point if self.use_guidance else None)
             if self.bev_save_path:
-                self.plot_to_bev(bev_image, traj[0], f"{self.bev_save_path}/bev_{count}.jpg")
+                self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1
-            control = self.process_control(traj, state, target_point)
+            if traj.size(-1) > 2:
+                control = traj[0][0][-3:].cpu().numpy()
+            else:
+                control = self.process_control(traj, state, target_point if self.use_guidance else traj[0][-1])
             input_control = {0: control}
             state, *_ = self.env.step(input_control)
             if done:
