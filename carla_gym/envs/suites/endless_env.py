@@ -15,9 +15,10 @@ class EndlessEnv(CarlaMultiAgentEnv):
         num_zombie_vehicles,
         num_zombie_walkers,
         weather_group,
+        target_speed,
     ):
         all_tasks = self.build_all_tasks(
-            num_zombie_vehicles, num_zombie_walkers, weather_group
+            num_zombie_vehicles, num_zombie_walkers, weather_group, target_speed
         )
         super().__init__(
             carla_map,
@@ -32,7 +33,7 @@ class EndlessEnv(CarlaMultiAgentEnv):
         )
 
     @staticmethod
-    def build_all_tasks(num_zombie_vehicles, num_zombie_walkers, weather_group):
+    def build_all_tasks(num_zombie_vehicles, num_zombie_walkers, weather_group, target_speed):
         if weather_group == "new":
             weathers = ["SoftRainSunset", "WetSunset"]
         elif weather_group == "train":
@@ -58,7 +59,7 @@ class EndlessEnv(CarlaMultiAgentEnv):
             weathers = [weather_group]
 
         actor_configs_dict = {
-            "ego_vehicles": {"hero": {"model": "vehicle.lincoln.mkz2017"}}
+            "ego_vehicles": {"hero": {"model": "vehicle.lincoln.mkz2017", "speed": target_speed}}
         }
         route_descriptions_dict = {"ego_vehicles": {"hero": []}}
         endless_dict = {"ego_vehicles": {"hero": True}}

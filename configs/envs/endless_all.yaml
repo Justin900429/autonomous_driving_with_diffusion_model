@@ -4,5 +4,6 @@ env_configs:
   num_zombie_vehicles: [0, 75]
   num_zombie_walkers: [0, 200]
   weather_group: dynamic_1.0
+  target_speed: 12
 env_id: Endless-v0
 gpu: [0]

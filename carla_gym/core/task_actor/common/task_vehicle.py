@@ -27,6 +27,7 @@ class TaskVehicle(object):
         spawn_transforms,
         endless,
         sub_sample_size=5,
+        target_speed=12,
     ):
         """
         vehicle: carla.Vehicle
@@ -55,7 +56,7 @@ class TaskVehicle(object):
         self._target_transforms = target_transforms  # transforms
 
         self._planner = GlobalRoutePlanner(self._map, resolution=1.0)
-        self._action_planner = LocalPlanner(target_speed=12)
+        self._action_planner = LocalPlanner(target_speed=target_speed)
         self._global_route = []
         self._global_plan_gps = []
         self._global_plan_world_coord = []

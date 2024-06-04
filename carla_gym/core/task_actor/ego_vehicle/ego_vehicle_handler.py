@@ -86,7 +86,11 @@ class EgoVehicleHandler(object):
                 endless = endless_config[ev_id]
             target_transforms = route_config[ev_id][1:]
             self.ego_vehicles[ev_id] = TaskVehicle(
-                carla_vehicle, target_transforms, self._spawn_transforms, endless
+                carla_vehicle,
+                target_transforms,
+                self._spawn_transforms,
+                endless,
+                target_speed=actor_config[ev_id]["speed"],
             )
 
             self.reward_handlers[ev_id] = self._build_instance(

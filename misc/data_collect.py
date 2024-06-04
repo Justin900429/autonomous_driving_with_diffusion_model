@@ -81,7 +81,7 @@ class Agent:
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
         self.step_to_reset = step_to_reset
-        
+
     def do_buffer(self, num_buffer):
         for _ in range(num_buffer):
             self.env.step({0: None})
@@ -91,18 +91,19 @@ class Agent:
         cur_traj = []
         target_bev = None
         init_compass = 0.0
-        buffer_frame = 0
         prev_red = False
         count_to_collect = 0
         step_to_reset = 0
 
         self.do_buffer(self.buffer_frames)
-                    
+
         while self.cur_save < self.total_to_save:
             input_control = {0: None}
             state, _, done, *_ = self.env.step(input_control)
             cur_pos = state["cur_waypoint"][0]
-            cur_control = state["state"][0][2:5]
+            cur_control = state["state"][0][:5]
+            cur_control[0] = cur_control[0] / 12  # speed
+            cur_control[1] = cur_control[1] / 180  # yaw
             camera = state["camera"][0]
             bev = state["bev"][0]
 
@@ -158,12 +159,18 @@ class Agent:
                     target_bev = cv2.circle(
                         target_bev, (int(pixel_x), int(pixel_y)), 3, (0, 255, 0), -1
                     )
-                    added_traj.append((traj[1] / self.magic_number, -traj[0] / self.magic_number, *action.tolist()))
+                    added_traj.append(
+                        (
+                            traj[1] / self.magic_number,
+                            -traj[0] / self.magic_number,
+                            *action.tolist(),
+                        )
+                    )
                 with open(
                     os.path.join(self.save_root, "waypoints", f"{self.cur_save:06d}.txt"), "w"
                 ) as f:
                     for traj in added_traj:
-                        f.write(f"{traj[0]} {traj[1]} {traj[2]} {traj[3]} {traj[4]}\n")
+                        f.write(f"{' '.join(map(str, traj))}\n")
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1
