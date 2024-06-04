@@ -13,7 +13,7 @@ from hydra import compose, initialize
 from torchvision import transforms as T
 
 from config import create_cfg, merge_possible_with_base, show_config
-from control import Controller
+from control import Controller, GuidanceLoss
 from misc.create_agent import create_env, create_server
 from misc.load_param import copy_parameters
 from modeling import build_model
@@ -59,6 +59,11 @@ class Agent:
             env_config, self.server_manager, get_random_seed() if seed is None else seed
         )
         self.cfg = cfg
+        
+        self.use_guidance = self.cfg.GUIDANCE.LOSS_LIST is not None
+        if self.use_guidance:
+            self.guidance_loss = GuidanceLoss(cfg)
+            
         self.bev_save_path = bev_save_path
         if bev_save_path:
             os.makedirs(bev_save_path, exist_ok=True)
@@ -95,8 +100,7 @@ class Agent:
             torch.cuda.empty_cache()
             print("weights are loaded")
 
-    @torch.inference_mode()
-    def generate_traj(self, image):
+    def generate_traj(self, image, target=None):
         self.model.eval()
         traj_shape = (
             1,
@@ -109,13 +113,21 @@ class Agent:
         self.noise_scheduler.set_timesteps(
             self.cfg.EVAL.SAMPLE_STEPS, device=self.device
         )
+        prev_t = None
         for t in self.noise_scheduler.timesteps:
-            model_output = self.model(
-                trajs,
-                image,
-                t.reshape(-1),
-            )
+            with torch.no_grad():
+                model_output = self.model(
+                    trajs,
+                    image,
+                    t.reshape(-1),
+                )
+            if t > 0 and prev_t is not None and self.use_guidance:
+                posterior_variance = self.noise_scheduler._get_variance(t, prev_t)
+                model_std = torch.exp(0.5 * posterior_variance)
+                model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
+            prev_t = t
+            
         trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_num
         trajs[..., 0] *= -1
 
@@ -130,17 +142,16 @@ class Agent:
         if math.isnan(yaw):
             yaw = 0.0
 
-        rad = yaw * math.pi / 180.0
-        rad = rad + math.pi / 2.0
-        R = np.array([[math.cos(rad), -math.sin(rad)], [math.sin(rad), math.cos(rad)]])
+        yaw = yaw + math.pi / 2.0
+        R = np.array([[math.cos(yaw), -math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]])
 
         local_command_point = np.array(
             [next_point[0][0] - cur_point[0][0], next_point[0][1] - cur_point[0][1]]
         )
-        local_command_point = R.T.dot(local_command_point)
+        local_command_point = R.T.dot(local_command_point).reshape(-1)
 
         target_point = torch.FloatTensor(
-            [[local_command_point[0], local_command_point[1]]]
+            [local_command_point[1] / self.model.magic_num, -local_command_point[0] / self.model.magic_num]
         ).to(self.device)
         return target_point
 
@@ -158,12 +169,12 @@ class Agent:
         speed = torch.FloatTensor([[speed]]).to(self.device)
         return speed
 
-    def process_control(self, traj, state):
+    def process_control(self, traj, state, target_point):
         gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(
             self.device, dtype=torch.float32
         )
         steer_res, throttle_res, brake_res = self.controller.control_pid(
-            traj[:, :3], gt_velocity, traj[0][3]
+            traj[:, :-1], gt_velocity, target_point
         )
 
         if brake_res < 0.05:
@@ -193,11 +204,18 @@ class Agent:
 
         while True:
             image = self.process_image(state["camera"][0])
+            if self.use_guidance:
+                target_point = self.process_next_waypoint(
+                    next_point=state["next_waypoint"],
+                    cur_point=state["cur_waypoint"],
+                    yaw=state["compass"][0],
+                )
             bev_image = state["bev"][0]
-            traj = self.generate_traj(image)
+            traj = self.generate_traj(image, target_point if self.use_guidance else None)
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0], f"{self.bev_save_path}/bev_{count}.jpg")
-            control = self.process_control(traj, state)
+                count += 1
+            control = self.process_control(traj, state, target_point)
             input_control = {0: control}
             state, *_ = self.env.step(input_control)
             if done:

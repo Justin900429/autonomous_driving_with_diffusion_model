@@ -7,4 +7,4 @@ class TargetGuidance(nn.Module):
         super(TargetGuidance, self).__init__()
 
     def forward(self, x, target):
-        return F.mse_loss(x[-1], target).mean()
+        return F.mse_loss(x[:, -1, :2], target).mean()

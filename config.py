@@ -86,16 +86,18 @@ def create_cfg():
 
     # ====== Guidance setup ======
     cfg.GUIDANCE = CN()
-    cfg.GUIDANCE_LOSS_LIST = [
+    cfg.GUIDANCE.LOSS_LIST = [
         ("TargetGuidance", {}),
     ]
+    cfg.GUIDANCE.STEP = 1
+    cfg.GUIDANCE.LR = 0.3
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()
     cfg.EVAL.BATCH_SIZE = 4
     cfg.EVAL.ETA = 0
     cfg.EVAL.CHECKPOINT = None
-    cfg.EVAL.SCHEDULER = "dpm"
+    cfg.EVAL.SCHEDULER = "ddim"
     cfg.EVAL.SAMPLE_STEPS = 10
     return cfg
 
