@@ -97,19 +97,14 @@ def evaluate(
     init_yaw = waypoints[0][3]
     trajs[:, 0, 3] = init_yaw
 
-    noise_scheduler.set_timesteps(cfg.EVAL.SAMPLE_STEPS, device=device)
+    noise_scheduler.set_timesteps(cfg.TRAIN.TIME_STEPS, device=device)
     for t in tqdm(noise_scheduler.timesteps):
         model_output = unet(
             trajs,
             front_image,
             t.reshape(-1).repeat(num_traj),
         )
-        if cfg.EVAL.SCHEDULER == "ddim":
-            trajs = noise_scheduler.step(
-                model_output, t, trajs, use_clipped_model_output=True, eta=cfg.EVAL.ETA
-            ).prev_sample
-        else:
-            trajs = noise_scheduler.step(model_output, t, trajs).prev_sample
+        trajs = noise_scheduler.step(model_output, t, trajs).prev_sample
         trajs[:, 0, :2] = 0
         trajs[:, 0, 3] = init_yaw
 
