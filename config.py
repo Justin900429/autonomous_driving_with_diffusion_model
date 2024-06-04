@@ -18,7 +18,7 @@ def create_cfg():
     # ======= Model setup =======
     cfg.MODEL = CN()
     cfg.MODEL.HORIZON = 16
-    cfg.MODEL.TRANSITION_DIM = 5
+    cfg.MODEL.TRANSITION_DIM = 7
     cfg.MODEL.USE_ATTN = False
     cfg.MODEL.DIM = 64
     cfg.MODEL.DIM_MULTS = (1, 2, 4, 8)
@@ -83,6 +83,12 @@ def create_cfg():
     cfg.CONTROL.BRAKE_RATIO = 1.1
     cfg.CONTROL.CLIP_DELTA = 0.25
     cfg.CONTROL.MAX_THROTTLE = 9
+
+    # ====== Guidance setup ======
+    cfg.GUIDANCE = CN()
+    cfg.GUIDANCE_LOSS_LIST = [
+        ("TargetGuidance", {}),
+    ]
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()
