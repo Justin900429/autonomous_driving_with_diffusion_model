@@ -130,7 +130,9 @@ class Agent:
 
                 if state["at_red_light"][0] == 1:
                     for _ in range(self.total_frame_should_pass - 1):
-                        cur_traj.append(np.concatenate([cur_pos, np.array([0.0, 0.0, 1.0])]))
+                        cur_traj.append(
+                            np.concatenate([cur_pos, np.array([0, cur_control[1], 0.0, 0.0, 1.0])])
+                        )
                         prev_red = True
                 else:
                     prev_red = False
