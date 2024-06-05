@@ -37,37 +37,25 @@ class RlCameraWrapper(gym.Wrapper):
         if "speed" in self._input_states:
             state_spaces.append(env.observation_space[self._ev_id]["speed"]["speed_xy"])
         if "speed_limit" in self._input_states:
-            state_spaces.append(
-                env.observation_space[self._ev_id]["control"]["speed_limit"]
-            )
+            state_spaces.append(env.observation_space[self._ev_id]["control"]["speed_limit"])
         if "control" in self._input_states:
-            state_spaces.append(
-                env.observation_space[self._ev_id]["control"]["throttle"]
-            )
+            state_spaces.append(env.observation_space[self._ev_id]["control"]["throttle"])
             state_spaces.append(env.observation_space[self._ev_id]["control"]["steer"])
             state_spaces.append(env.observation_space[self._ev_id]["control"]["brake"])
             state_spaces.append(env.observation_space[self._ev_id]["control"]["gear"])
         if "acc_xy" in self._input_states:
-            state_spaces.append(
-                env.observation_space[self._ev_id]["velocity"]["acc_xy"]
-            )
+            state_spaces.append(env.observation_space[self._ev_id]["velocity"]["acc_xy"])
         if "vel_xy" in self._input_states:
-            state_spaces.append(
-                env.observation_space[self._ev_id]["velocity"]["vel_xy"]
-            )
+            state_spaces.append(env.observation_space[self._ev_id]["velocity"]["vel_xy"])
         if "vel_ang_z" in self._input_states:
-            state_spaces.append(
-                env.observation_space[self._ev_id]["velocity"]["vel_ang_z"]
-            )
+            state_spaces.append(env.observation_space[self._ev_id]["velocity"]["vel_ang_z"])
 
         state_low = np.concatenate([s.low for s in state_spaces])
         state_high = np.concatenate([s.high for s in state_spaces])
 
         env.observation_space = gym.spaces.Dict(
             {
-                "state": gym.spaces.Box(
-                    low=state_low, high=state_high, dtype=np.float32
-                ),
+                "state": gym.spaces.Box(low=state_low, high=state_high, dtype=np.float32),
                 "camera": env.observation_space[self._ev_id]["camera"]["data"],
                 "bev": env.observation_space[self._ev_id]["camera"]["bev_data"],
                 "compass": env.observation_space[self._ev_id]["camera"]["compass"],
@@ -81,9 +69,7 @@ class RlCameraWrapper(gym.Wrapper):
                     low=-np.inf, high=np.inf, shape=(2,), dtype=np.float32
                 ),
                 "next_command": gym.spaces.Discrete(7),
-                "at_red_light": env.observation_space[self._ev_id]["traffic_light"][
-                    "at_red_light"
-                ],
+                "at_red_light": env.observation_space[self._ev_id]["traffic_light"]["at_red_light"],
             }
         )
 
@@ -112,9 +98,7 @@ class RlCameraWrapper(gym.Wrapper):
                 self.env.carla_map
             ]
             for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
-                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"][
-                    "eval_mode"
-                ] = True
+                self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"]["eval_mode"] = True
         else:
             for ev_id in self.env.unwrapped.ev_handler._terminal_configs:
                 self.env.unwrapped.ev_handler._terminal_configs[ev_id]["kwargs"][
@@ -203,22 +187,14 @@ class RlCameraWrapper(gym.Wrapper):
         )
 
         txt_t = f'step:{render_dict["timestamp"]["step"]:5}, frame:{render_dict["timestamp"]["frame"]:5}'
-        im = cv2.putText(
-            im, txt_t, (3, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1
-        )
+        im = cv2.putText(im, txt_t, (3, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt_1 = f'a{action_str} v:{render_dict["action_value"]:5.2f} p:{render_dict["action_log_probs"]:5.2f}'
-        im = cv2.putText(
-            im, txt_1, (3, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1
-        )
+        im = cv2.putText(im, txt_1, (3, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         txt_2 = f"s{state_str}"
-        im = cv2.putText(
-            im, txt_2, (3, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1
-        )
+        im = cv2.putText(im, txt_2, (3, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
 
         txt_3 = f"a{mu_str} b{sigma_str}"
-        im = cv2.putText(
-            im, txt_3, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1
-        )
+        im = cv2.putText(im, txt_3, (w, 12), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 1)
         for i, txt in enumerate(
             render_dict["reward_debug"]["debug_texts"]
             + render_dict["terminal_debug"]["debug_texts"]
