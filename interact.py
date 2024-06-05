@@ -102,7 +102,7 @@ class Agent:
             torch.cuda.empty_cache()
             print("weights are loaded")
 
-    def generate_traj(self, image, yaw, target=None):
+    def generate_traj(self, image, target=None):
         self.model.eval()
         traj_shape = (
             1,
@@ -113,7 +113,6 @@ class Agent:
         image = image.to(self.device)
 
         trajs[:, 0, :2] = 0.0
-        trajs[:, 0, 3] = yaw
 
         self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
         prev_t = None
@@ -130,13 +129,10 @@ class Agent:
                 model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
             trajs[:, 0, :2] = 0.0
-            trajs[:, 0, 3] = yaw
             prev_t = t
 
         trajs = trajs.to(torch.float32).clamp(-1, 1)
         trajs[..., :2] *= self.model.magic_num
-        trajs[..., 0] *= -1
-
         return trajs
 
     def process_image(self, image):
@@ -189,16 +185,18 @@ class Agent:
         return np.array([throttle_res, steer_res, brake_res])
     
     def process_control(self, traj, state, target_point):
-        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(self.device, dtype=torch.float32)
-        steer_res, throttle_res, brake_res = self.controller.control_pid(
-            traj[:, :4, :-1], gt_velocity, target_point
+        gt_velocity = torch.FloatTensor([state["state"][0][1]]).to(self.device, dtype=torch.float32)
+        renew_traj = torch.stack((-traj[..., 0], traj[..., 1]), dim=-1)
+        renew_target = torch.stack([-target_point[0], target_point[1]], dim=-1)
+        throttle_res, steer_res, brake_res = self.controller.control_pid(
+            renew_traj, gt_velocity, renew_target
         )
 
         return self.post_process_control(throttle_res, steer_res, brake_res)
 
     def plot_to_bev(self, bev_image, traj, filename="test.jpg"):
         for x, y in traj:
-            x, y = x / self.model.magic_num * -1, y / self.model.magic_num
+            x, y = x / self.model.magic_num, y / self.model.magic_num
             pixel_x = way_point_to_pixel(x.item())
             pixel_y = way_point_to_pixel(y.item())
             bev_image = cv2.circle(bev_image, (pixel_x, pixel_y), 3, (0, 0, 255), -1)
@@ -212,7 +210,7 @@ class Agent:
             yaw = 0.0
         yaw = yaw + np.pi / 2.0
         agent_pos = agent_pos.cpu().numpy()
-        agent_pos = np.stack([-agent_pos[:, 1], -agent_pos[:, 0]], axis=-1)
+        agent_pos = np.stack([-agent_pos[:, 1], agent_pos[:, 0]], axis=-1)
         R = np.array([[np.cos(yaw), np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
         world_pos = R.T.dot(agent_pos.T).T # [H, 2]
         return world_pos + cur_pos[None]
@@ -243,9 +241,8 @@ class Agent:
                     yaw=state["compass"][0],
                 )
             bev_image = state["bev"][0]
-            yaw = state["state"][0][1] / 180
             traj = self.generate_traj(
-                image, float(yaw), target_point if self.use_guidance else None
+                image, target_point if self.use_guidance else None
             )
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
@@ -254,7 +251,7 @@ class Agent:
                 control = self.post_process_control(*traj[0, 0, -3:].cpu().numpy())
             else:
                 control = self.process_control(
-                    traj, state, target_point if self.use_guidance else traj[0][-1]
+                    traj[0, :4, :2], state, target_point if self.use_guidance else traj[0, 4, :2]
                 )
             if self.plot_on_world:
                 world_point = self.agent_to_world(

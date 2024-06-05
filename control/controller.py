@@ -27,8 +27,8 @@ class Controller:
         self.max_throttle = cfg.CONTROL.MAX_THROTTLE
 
     def control_pid(self, waypoints, velocity, target):
-        waypoints = waypoints[0].data.cpu().numpy()
-        target = target.squeeze().data.cpu().numpy()
+        waypoints = waypoints.data.cpu().numpy()
+        target = target.data.cpu().numpy()
         num_pairs = len(waypoints) - 1
         best_norm = 1e5
         desired_speed = 0
@@ -67,4 +67,4 @@ class Controller:
         throttle = np.clip(throttle, 0.0, self.max_throttle)
         throttle = throttle if not brake else 0.0
 
-        return steer, throttle, brake
+        return throttle, steer, brake
