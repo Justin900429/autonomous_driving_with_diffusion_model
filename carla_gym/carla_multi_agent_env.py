@@ -1,5 +1,6 @@
 import logging
 import random
+import time
 
 import carla
 import gymnasium as gym
@@ -15,6 +16,17 @@ from .utils.dynamic_weather import WeatherHandler
 from .utils.traffic_light import TrafficLightHandler
 
 logger = logging.getLogger(__name__)
+
+
+def get_random_seed():
+    t = int(time.time() * 1000.0)
+    t = (
+        ((t & 0xFF000000) >> 24)
+        + ((t & 0x00FF0000) >> 8)
+        + ((t & 0x0000FF00) << 8)
+        + ((t & 0x000000FF) << 24)
+    )
+    return t
 
 
 class CarlaMultiAgentEnv(gym.Env):
@@ -230,7 +242,7 @@ class CarlaMultiAgentEnv(gym.Env):
             self.set_sync_mode(False, set_tm=False)
         current_map = random.choice(self.carla_map)
         self.world = self.client.load_world(current_map)
-        self.tm.set_random_device_seed(self.seed)
+        self.tm.set_random_device_seed(get_random_seed())
         self.remake_task()
         self.wt_handler = WeatherHandler(self.world)
         self.set_sync_mode(True)
