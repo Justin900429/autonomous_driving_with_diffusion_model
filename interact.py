@@ -3,12 +3,16 @@ import math
 import os
 import time
 
+import carla
 import cv2
 import numpy as np
 import torch
 import torch.nn.functional
-from diffusers.schedulers import (DDIMScheduler, DDPMScheduler,
-                                  DPMSolverMultistepScheduler)
+from diffusers.schedulers import (
+    DDIMScheduler,
+    DDPMScheduler,
+    DPMSolverMultistepScheduler,
+)
 from hydra import compose, initialize
 from torchvision import transforms as T
 
@@ -28,6 +32,7 @@ SCHEDULER_FUNC = {
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None, type=str)
+    parser.add_argument("--plot-on-world", default=False, action="store_true")
     parser.add_argument("--save-bev-path", default=None, type=str)
     parser.add_argument("--opts", nargs=argparse.REMAINDER, default=None, type=str)
     return parser.parse_args()
@@ -50,7 +55,7 @@ def get_random_seed():
 
 
 class Agent:
-    def __init__(self, cfg, bev_save_path=None, off_screen=False, seed=None):
+    def __init__(self, cfg, plot_on_world=False, bev_save_path=None, off_screen=False, seed=None):
         with initialize(config_path="configs", version_base="1.3.2"):
             env_config = compose(config_name=cfg.ENV.CONFIG_PATH)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -58,14 +63,16 @@ class Agent:
         self.env = create_env(
             env_config, self.server_manager, get_random_seed() if seed is None else seed
         )
+        self.env_injector = self.env.envs[0].env.unwrapped
         self.cfg = cfg
-        
+
         self.use_guidance = self.cfg.GUIDANCE.LOSS_LIST is not None
         if self.use_guidance:
             self.guidance_loss = GuidanceLoss(cfg)
-            
+
+        self.plot_on_world = plot_on_world
         self.bev_save_path = bev_save_path
-        if bev_save_path:
+        if bev_save_path is not None:
             os.makedirs(bev_save_path, exist_ok=True)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.image_transform = T.Compose(
@@ -83,7 +90,7 @@ class Agent:
             # For linear only
             beta_start=cfg.TRAIN.NOISE_SCHEDULER.BETA_START,
             beta_end=cfg.TRAIN.NOISE_SCHEDULER.BETA_END,
-            # thresholding=True,
+            thresholding=True,
         )
 
         if cfg.EVAL.SCHEDULER == "dpm":
@@ -93,9 +100,7 @@ class Agent:
         if cfg.EVAL.CHECKPOINT:
             weight = torch.load(cfg.EVAL.CHECKPOINT, map_location=self.device)
             self.model.load_state_dict(weight["state_dict"])
-            copy_parameters(
-                weight["ema_state_dict"]["shadow_params"], self.model.parameters()
-            )
+            copy_parameters(weight["ema_state_dict"]["shadow_params"], self.model.parameters())
             del weight
             torch.cuda.empty_cache()
             print("weights are loaded")
@@ -109,13 +114,11 @@ class Agent:
         )
         trajs = torch.randn(traj_shape, device=self.device)
         image = image.to(self.device)
-        
-        trajs[:, 0, :2] = 0.
+
+        trajs[:, 0, :2] = 0.0
         trajs[:, 0, 3] = yaw
 
-        self.noise_scheduler.set_timesteps(
-            self.cfg.EVAL.SAMPLE_STEPS, device=self.device
-        )
+        self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
         prev_t = None
         for t in self.noise_scheduler.timesteps:
             with torch.no_grad():
@@ -129,17 +132,17 @@ class Agent:
                 model_std = torch.exp(0.5 * posterior_variance)
                 model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
-            trajs[:, 0, :2] = 0.
+            trajs[:, 0, :2] = 0.0
             trajs[:, 0, 3] = yaw
             prev_t = t
-            
+
         trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_num
         trajs[..., 0] *= -1
 
         return trajs
 
     def process_image(self, image):
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = self.image_transform(image).unsqueeze(0).to(self.device)
         return image
 
@@ -156,7 +159,10 @@ class Agent:
         local_command_point = R.T.dot(local_command_point).reshape(-1)
 
         target_point = torch.FloatTensor(
-            [local_command_point[1] / self.model.magic_num, -local_command_point[0] / self.model.magic_num]
+            [
+                local_command_point[1] / self.model.magic_num,
+                -local_command_point[0] / self.model.magic_num,
+            ]
         ).to(self.device)
         return target_point
 
@@ -164,9 +170,9 @@ class Agent:
         if command < 0:
             command = 4
         command -= 1
-        one_hot_command = torch.nn.functional.one_hot(
-            torch.tensor([command]), num_classes=6
-        ).to(self.device, dtype=torch.float32)
+        one_hot_command = torch.nn.functional.one_hot(torch.tensor([command]), num_classes=6).to(
+            self.device, dtype=torch.float32
+        )
 
         return one_hot_command
 
@@ -175,11 +181,9 @@ class Agent:
         return speed
 
     def process_control(self, traj, state, target_point):
-        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(
-            self.device, dtype=torch.float32
-        )
+        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(self.device, dtype=torch.float32)
         steer_res, throttle_res, brake_res = self.controller.control_pid(
-            traj[:, :-1, :2], gt_velocity, target_point
+            traj[:, :4, :-1], gt_velocity, target_point
         )
 
         if brake_res < 0.05:
@@ -198,9 +202,32 @@ class Agent:
             pixel_x = way_point_to_pixel(x.item())
             pixel_y = way_point_to_pixel(y.item())
             bev_image = cv2.circle(bev_image, (pixel_x, pixel_y), 3, (0, 0, 255), -1)
-        cv2.imwrite(
-            filename, cv2.cvtColor(bev_image, cv2.COLOR_RGB2BGR)
-        )
+        cv2.imwrite(filename, cv2.cvtColor(bev_image, cv2.COLOR_RGB2BGR))
+
+    def agent_to_world(self, agent_pos, yaw, cur_pos):
+        """
+        agent_pos: [H, 2]
+        """
+        if math.isnan(yaw):
+            yaw = 0.0
+        yaw = yaw + np.pi / 2.0
+        agent_pos = agent_pos.cpu().numpy()
+        agent_pos = np.stack([-agent_pos[:, 1], -agent_pos[:, 0]], axis=-1)
+        R = np.array([[np.cos(yaw), np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
+        world_pos = R.T.dot(agent_pos.T).T[:, :, 0]  # [H, 2]
+        return world_pos + cur_pos[None]
+
+    def plot_to_world(self, trajs):
+        world = self.env_injector.world
+        for x, y in trajs:
+            world.debug.draw_string(
+                carla.Location(float(x), float(y), 0.5),
+                "x",
+                draw_shadow=False,
+                color=carla.Color(r=0, g=0, b=255),
+                life_time=-1,
+                persistent_lines=True,
+            )
 
     def run(self):
         state = self.env.reset()
@@ -216,15 +243,24 @@ class Agent:
                     yaw=state["compass"][0],
                 )
             bev_image = state["bev"][0]
-            yaw = state["compass"][0] + math.pi / 2.0
-            traj = self.generate_traj(image, yaw, target_point if self.use_guidance else None)
+            yaw = state["state"][0][1] / 180
+            traj = self.generate_traj(
+                image, float(yaw), target_point if self.use_guidance else None
+            )
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1
             if traj.size(-1) > 2:
                 control = traj[0][0][-3:].cpu().numpy()
             else:
-                control = self.process_control(traj, state, target_point if self.use_guidance else traj[0][-1])
+                control = self.process_control(
+                    traj, state, target_point if self.use_guidance else traj[0][-1]
+                )
+            if self.plot_on_world:
+                world_point = self.agent_to_world(
+                    traj[0, :, :2], state["compass"][0], state["cur_waypoint"][0]
+                )
+                self.plot_to_world(world_point)
             input_control = {0: control}
             state, *_ = self.env.step(input_control)
             if done:
@@ -245,5 +281,5 @@ if __name__ == "__main__":
         cfg.merge_from_list(args.opts)
     show_config(cfg)
 
-    agent = Agent(cfg, args.save_bev_path)
+    agent = Agent(cfg, args.plot_on_world, args.save_bev_path)
     agent.run()
