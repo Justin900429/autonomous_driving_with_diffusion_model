@@ -79,7 +79,7 @@ def evaluate(
         cfg.MODEL.TRANSITION_DIM,
     )
     trajs = torch.randn(traj_shape, device=device)
-    trajs[:, 0, :2] = 0
+    trajs[:, 0, :3] = 0
     front_images = glob.glob(os.path.join(cfg.TRAIN.ROOT, "front", "*.png"))
 
     front_image_name = random.choice(front_images)
@@ -88,14 +88,6 @@ def evaluate(
         .to(device)
         .repeat(num_traj, 1, 1, 1)
     )
-    waypoint_name = front_image_name.replace("front", "waypoints").replace("png", "txt")
-    with open(waypoint_name, "r") as f:
-        waypoints = f.readlines()
-    waypoints = torch.tensor(
-        [list(map(float, line.strip().split())) for line in waypoints if len(line.strip()) != 0]
-    )
-    init_yaw = waypoints[0][3]
-    trajs[:, 0, 3] = init_yaw
 
     noise_scheduler.set_timesteps(cfg.TRAIN.TIME_STEPS, device=device)
     for t in tqdm(noise_scheduler.timesteps):
@@ -105,8 +97,7 @@ def evaluate(
             t.reshape(-1).repeat(num_traj),
         )
         trajs = noise_scheduler.step(model_output, t, trajs).prev_sample
-        trajs[:, 0, :2] = 0
-        trajs[:, 0, 3] = init_yaw
+        trajs[:, 0, :3] = 0
 
     trajs = trajs[..., :2].to(torch.float32).clamp(-1, 1)
     bev_image = np.array(Image.open(front_image_name.replace("front", "bev")).convert("RGB"))
@@ -250,7 +241,7 @@ def main(args):
         t = torch.randint(0, cfg.TRAIN.TIME_STEPS, (trajs.shape[0],), device=device).long()
         noise = torch.randn_like(trajs, dtype=weight_dtype)
         noise_data = noise_scheduler.add_noise(trajs, noise, t)
-        noise_data[..., 0, [0, 1, 3]] = trajs[..., 0, [0, 1, 3]]
+        noise_data[..., 0, :3] = 0
         with accelerator.accumulate(model):
             pred = model(noise_data, imgs, t)
 

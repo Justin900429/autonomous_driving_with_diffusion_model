@@ -8,11 +8,8 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional
-from diffusers.schedulers import (
-    DDIMScheduler,
-    DDPMScheduler,
-    DPMSolverMultistepScheduler,
-)
+from diffusers.schedulers import (DDIMScheduler, DDPMScheduler,
+                                  DPMSolverMultistepScheduler)
 from hydra import compose, initialize
 from torchvision import transforms as T
 
@@ -136,13 +133,13 @@ class Agent:
             trajs[:, 0, 3] = yaw
             prev_t = t
 
-        trajs = trajs.to(torch.float32).clamp(-1, 1) * self.model.magic_num
+        trajs = trajs.to(torch.float32).clamp(-1, 1)
+        trajs[..., :2] *= self.model.magic_num
         trajs[..., 0] *= -1
 
         return trajs
 
     def process_image(self, image):
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = self.image_transform(image).unsqueeze(0).to(self.device)
         return image
 
@@ -180,12 +177,7 @@ class Agent:
         speed = torch.FloatTensor([[speed]]).to(self.device)
         return speed
 
-    def process_control(self, traj, state, target_point):
-        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(self.device, dtype=torch.float32)
-        steer_res, throttle_res, brake_res = self.controller.control_pid(
-            traj[:, :4, :-1], gt_velocity, target_point
-        )
-
+    def post_process_control(self, throttle_res, steer_res, brake_res):
         if brake_res < 0.05:
             brake_res = 0.0
         if throttle_res > brake_res:
@@ -195,6 +187,14 @@ class Agent:
             throttle_res = float(0)
 
         return np.array([throttle_res, steer_res, brake_res])
+    
+    def process_control(self, traj, state, target_point):
+        gt_velocity = torch.FloatTensor([state["state"][0][0]]).to(self.device, dtype=torch.float32)
+        steer_res, throttle_res, brake_res = self.controller.control_pid(
+            traj[:, :4, :-1], gt_velocity, target_point
+        )
+
+        return self.post_process_control(throttle_res, steer_res, brake_res)
 
     def plot_to_bev(self, bev_image, traj, filename="test.jpg"):
         for x, y in traj:
@@ -214,7 +214,7 @@ class Agent:
         agent_pos = agent_pos.cpu().numpy()
         agent_pos = np.stack([-agent_pos[:, 1], -agent_pos[:, 0]], axis=-1)
         R = np.array([[np.cos(yaw), np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
-        world_pos = R.T.dot(agent_pos.T).T[:, :, 0]  # [H, 2]
+        world_pos = R.T.dot(agent_pos.T).T # [H, 2]
         return world_pos + cur_pos[None]
 
     def plot_to_world(self, trajs):
@@ -251,14 +251,14 @@ class Agent:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1
             if traj.size(-1) > 2:
-                control = traj[0][0][-3:].cpu().numpy()
+                control = self.post_process_control(*traj[0, 0, -3:].cpu().numpy())
             else:
                 control = self.process_control(
                     traj, state, target_point if self.use_guidance else traj[0][-1]
                 )
             if self.plot_on_world:
                 world_point = self.agent_to_world(
-                    traj[0, :, :2], state["compass"][0], state["cur_waypoint"][0]
+                    traj[0, :, :2], state["compass"][0][0], state["cur_waypoint"][0]
                 )
                 self.plot_to_world(world_point)
             input_control = {0: control}

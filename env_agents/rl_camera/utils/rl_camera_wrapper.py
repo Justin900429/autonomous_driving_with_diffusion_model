@@ -213,10 +213,10 @@ class RlCameraWrapper(gym.Wrapper):
     @staticmethod
     def process_obs(obs, input_states, train=True):
         state_list = []
-        if "speed_norm" in input_states:
-            state_list.append(obs["speed"]["speed"])
         if "yaw" in input_states:
             state_list.append(obs["speed"]["yaw"])
+        if "speed_norm" in input_states:
+            state_list.append(obs["speed"]["speed"])
         if "speed" in input_states:
             state_list.append(obs["speed"]["speed_xy"])
         if "speed_limit" in input_states:

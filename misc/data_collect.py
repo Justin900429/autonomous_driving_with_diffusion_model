@@ -102,8 +102,8 @@ class Agent:
             state, _, done, *_ = self.env.step(input_control)
             cur_pos = state["cur_waypoint"][0]
             cur_control = state["state"][0][:5]
-            cur_control[0] = cur_control[0] / 12  # speed
-            cur_control[1] = cur_control[1] / 180  # yaw
+            cur_control[0] = cur_control[0] / 180  # yaw
+            cur_control[1] = cur_control[1] / 12  # speed
             camera = state["camera"][0]
             bev = state["bev"][0]
 
@@ -129,24 +129,31 @@ class Agent:
                 init_compass = state["compass"][0]
 
                 if state["at_red_light"][0] == 1:
-                    for _ in range(self.total_frame_should_pass - 1):
+                    for _ in range(self.total_frame_should_pass):
                         cur_traj.append(
-                            np.concatenate([cur_pos, np.array([0, cur_control[1], 0.0, 0.0, 1.0])])
+                            np.concatenate([cur_pos, np.array([0.0, 0.0, 0.0, 0.0, 1.0])])
                         )
                         prev_red = True
                 else:
                     prev_red = False
 
-            cur_traj.append(np.concatenate((cur_pos, cur_control)))
+            if len(cur_traj) < self.total_frame_should_pass + 1:
+                cur_traj.append(np.concatenate((cur_pos, cur_control)))
 
-            if len(cur_traj) != self.total_frame_should_pass:
+            if len(cur_traj) != self.total_frame_should_pass + 1:
                 count_to_collect += 1
             else:
                 save_bev_path = os.path.join(self.save_root, "bev", f"{self.cur_save:06d}.png")
                 added_traj = []
-                for traj_action in cur_traj:
-                    traj = traj_action[:2]
-                    action = traj_action[2:]
+                for idx in range(len(cur_traj) - 1):
+                    traj = np.copy(cur_traj[idx][:2])
+                    car_state = np.copy(cur_traj[idx][2:4])
+                    action = np.copy(cur_traj[idx + 1][-3:])
+                    car_state[0] -= cur_traj[0][2]
+                    if car_state[0] > 1:
+                        car_state[0] -= 1
+                    elif car_state[0] < -1:
+                        car_state[0] += 1
                     theta = init_compass + np.pi / 2
                     R = np.array(
                         [
@@ -165,7 +172,8 @@ class Agent:
                         (
                             traj[1] / self.magic_number,
                             -traj[0] / self.magic_number,
-                            *action.tolist(),
+                            *car_state.tolist(),
+                            *action.tolist()
                         )
                     )
                 with open(
