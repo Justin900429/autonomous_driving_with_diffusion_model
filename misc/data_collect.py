@@ -3,6 +3,7 @@ import glob
 import os
 import time
 
+import carla
 import cv2
 import numpy as np
 import torch
@@ -62,6 +63,7 @@ class Agent:
             cfg = compose(config_name=env_config_path)
         self.server_manager = create_server(cfg, off_screen)
         self.env = create_env(cfg, self.server_manager, seed)
+        self.cfg = cfg
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.magic_number = 23.315
@@ -80,13 +82,20 @@ class Agent:
         self.save_every_n_frame = save_every_n_frame
         self.buffer_frames = 50
         self.step_to_reset = step_to_reset
+        self.car_agent = None
 
     def do_buffer(self, num_buffer):
         for _ in range(num_buffer):
             self.env.step({0: None})
+            
+    def get_car_agent(self):
+        ev_handler =  self.env.envs[0].env.unwrapped.ev_handler
+        if ev_handler is not None:
+            self.car_agent = ev_handler.ego_vehicles["hero"].vehicle
 
     def run(self):
         state = self.env.reset()
+        self.get_car_agent()
         cur_traj = []
         target_bev = None
         init_compass = 0.0
@@ -102,7 +111,7 @@ class Agent:
             cur_pos = state["cur_waypoint"][0]
             cur_control = state["state"][0][:5]
             cur_control[0] = cur_control[0] / 180  # yaw
-            cur_control[1] = cur_control[1] / 12  # speed
+            cur_control[1] = cur_control[1] / self.cfg.envs.env_configs.target_speed  # speed
             camera = state["camera"][0]
             bev = state["bev"][0]
 
@@ -112,6 +121,7 @@ class Agent:
                 count_to_collect = 0
                 step_to_reset = 0
                 self.do_buffer(self.buffer_frames)
+                self.get_car_agent()
                 continue
 
             if state["at_red_light"][0] == 1 and prev_red:
@@ -184,9 +194,16 @@ class Agent:
                 cur_traj.clear()
                 self.cur_save += 1
                 count_to_collect = 0
+                
+                if prev_red is True and self.car_agent is not None and self.car_agent.is_alive and self.car_agent.is_at_traffic_light():
+                    traffic_light = self.car_agent.get_traffic_light()
+                    if traffic_light.get_state() == carla.TrafficLightState.Red:
+                        traffic_light.set_state(carla.TrafficLightState.Green)
+                    continue
 
                 if step_to_reset > self.step_to_reset:
                     self.env.reset()
+                    self.get_car_agent()
                     step_to_reset = 0
 
                 # Skip the next 50 frames to increase the diversity of the data
