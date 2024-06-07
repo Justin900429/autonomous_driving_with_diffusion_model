@@ -8,8 +8,11 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional
-from diffusers.schedulers import (DDIMScheduler, DDPMScheduler,
-                                  DPMSolverMultistepScheduler)
+from diffusers.schedulers import (
+    DDIMScheduler,
+    DDPMScheduler,
+    DPMSolverMultistepScheduler,
+)
 from hydra import compose, initialize
 from torchvision import transforms as T
 
@@ -114,9 +117,7 @@ class Agent:
         image = image.to(self.device)
 
         trajs[:, 0, :3] = 0.0
-
         self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
-        prev_t = None
         for t in self.noise_scheduler.timesteps:
             with torch.no_grad():
                 model_output = self.model(
@@ -124,13 +125,17 @@ class Agent:
                     image,
                     t.reshape(-1),
                 )
-            if t > 0 and prev_t is not None and self.use_guidance:
+            if self.use_guidance:
+                prev_t = (
+                    t
+                    - self.noise_scheduler.config.num_train_timesteps
+                    // self.noise_scheduler.num_inference_steps
+                )
                 posterior_variance = self.noise_scheduler._get_variance(t, prev_t)
                 model_std = torch.exp(0.5 * posterior_variance)
                 model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
             trajs[:, 0, :3] = 0.0
-            prev_t = t
 
         trajs = trajs.to(torch.float32).clamp(-1, 1)
         trajs[..., :2] *= self.model.magic_num
@@ -184,7 +189,7 @@ class Agent:
             throttle_res = float(0)
 
         return np.array([throttle_res, steer_res, brake_res])
-    
+
     def process_control(self, traj, state, target_point):
         gt_velocity = torch.FloatTensor([state["state"][0][1]]).to(self.device, dtype=torch.float32)
         renew_traj = torch.stack((-traj[..., 0], traj[..., 1]), dim=-1)
@@ -212,8 +217,8 @@ class Agent:
         yaw = yaw + np.pi / 2.0
         agent_pos = agent_pos.cpu().numpy()
         agent_pos = np.stack([-agent_pos[:, 1], agent_pos[:, 0]], axis=-1)
-        R = np.array([[np.cos(yaw), np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
-        world_pos = R.T.dot(agent_pos.T).T # [H, 2]
+        R = np.array([[np.cos(yaw), np.sin(yaw)], [-np.sin(yaw), np.cos(yaw)]])
+        world_pos = R.T.dot(agent_pos.T).T  # [H, 2]
         return world_pos + cur_pos[None]
 
     def plot_to_world(self, trajs):
@@ -242,9 +247,7 @@ class Agent:
                     yaw=state["compass"][0],
                 )
             bev_image = state["bev"][0]
-            traj = self.generate_traj(
-                image, target_point if self.use_guidance else None
-            )
+            traj = self.generate_traj(image, target_point if self.use_guidance else None)
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1
