@@ -1,3 +1,4 @@
+import carla
 import numpy as np
 from gymnasium import spaces
 
@@ -31,7 +32,7 @@ class ObsManager(ObsManagerBase):
 
     def get_observation(self):
         obs = {
-            "at_red_light": int(self._parent_actor.vehicle.is_at_traffic_light()),
+            "at_red_light": int(self._parent_actor.vehicle.is_at_traffic_light() and self._parent_actor.vehicle.get_traffic_light().get_state() == carla.TrafficLightState.Red),
             "trigger_location": np.zeros((3,), dtype=np.float32),
             "trigger_square": np.zeros((5, 3), dtype=np.float32),
         }

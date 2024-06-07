@@ -106,7 +106,10 @@ class Agent:
         self.do_buffer(self.buffer_frames)
 
         while self.cur_save < self.total_to_save:
-            input_control = {0: None}
+            if not prev_red:
+                input_control = {0: None}
+            else:
+                input_control = {0: np.array([0.0, 0.0, 1.0])}
             state, _, done, *_ = self.env.step(input_control)
             cur_pos = state["cur_waypoint"][0]
             cur_control = state["state"][0][:5]
