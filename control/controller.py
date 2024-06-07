@@ -34,7 +34,9 @@ class Controller:
         desired_speed = 0
         aim = waypoints[0]
         for i in range(num_pairs):
-            desired_speed += np.linalg.norm(waypoints[i + 1] - waypoints[i]) * 2.0 / num_pairs
+            desired_speed += (
+                np.linalg.norm(waypoints[i + 1] - waypoints[i]) * 2.0 / num_pairs
+            )
 
             norm = np.linalg.norm((waypoints[i + 1] + waypoints[i]) / 2.0)
             if abs(self.aim_dist - best_norm) > abs(self.aim_dist - norm):
@@ -49,7 +51,8 @@ class Controller:
 
         use_target_to_aim = np.abs(angle_target) < np.abs(angle)
         use_target_to_aim = use_target_to_aim or (
-            np.abs(angle_target - angle_last) > self.angle_thresh and target[1] < self.dist_thresh
+            np.abs(angle_target - angle_last) > self.angle_thresh
+            and target[1] < self.dist_thresh
         )
         if use_target_to_aim:
             angle_final = angle_target
@@ -60,7 +63,10 @@ class Controller:
         steer = np.clip(steer, -1.0, 1.0)
 
         speed = velocity[0].data.cpu().numpy()
-        brake = desired_speed < self.brake_speed or (speed / desired_speed) > self.brake_ratio
+        brake = (
+            desired_speed < self.brake_speed
+            or (speed / desired_speed) > self.brake_ratio
+        )
 
         delta = np.clip(desired_speed - speed, 0.0, self.clip_delta)
         throttle = self.speed_controller.step(delta)
