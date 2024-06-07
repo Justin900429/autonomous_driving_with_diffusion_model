@@ -8,11 +8,6 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional
-from diffusers.schedulers import (
-    DDIMScheduler,
-    DDPMScheduler,
-    DPMSolverMultistepScheduler,
-)
 from hydra import compose, initialize
 from torchvision import transforms as T
 
@@ -21,11 +16,11 @@ from control import Controller, GuidanceLoss
 from misc.create_agent import create_env, create_server
 from misc.load_param import copy_parameters
 from modeling import build_model
+from scheduler import GuidanceDDIMScheduler, GuidanceDDPMScheduler
 
 SCHEDULER_FUNC = {
-    "ddpm": DDPMScheduler,
-    "ddim": DDIMScheduler,
-    "dpm": DPMSolverMultistepScheduler,
+    "ddpm": GuidanceDDPMScheduler,
+    "ddim": GuidanceDDIMScheduler,
 }
 
 
@@ -66,10 +61,6 @@ class Agent:
         self.env_injector = self.env.envs[0].env.unwrapped
         self.cfg = cfg
 
-        self.use_guidance = self.cfg.GUIDANCE.LOSS_LIST is not None
-        if self.use_guidance:
-            self.guidance_loss = GuidanceLoss(cfg)
-
         self.plot_on_world = plot_on_world
         self.bev_save_path = bev_save_path
         if bev_save_path is not None:
@@ -91,6 +82,7 @@ class Agent:
             beta_start=cfg.TRAIN.NOISE_SCHEDULER.BETA_START,
             beta_end=cfg.TRAIN.NOISE_SCHEDULER.BETA_END,
             thresholding=True,
+            cfg=cfg,
         )
 
         if cfg.EVAL.SCHEDULER == "dpm":
@@ -125,16 +117,7 @@ class Agent:
                     image,
                     t.reshape(-1),
                 )
-            if self.use_guidance:
-                prev_t = (
-                    t
-                    - self.noise_scheduler.config.num_train_timesteps
-                    // self.noise_scheduler.num_inference_steps
-                )
-                posterior_variance = self.noise_scheduler._get_variance(t, prev_t)
-                model_std = torch.exp(0.5 * posterior_variance)
-                model_output = self.guidance_loss(model_output, target, model_std)
-            trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
+            trajs = self.noise_scheduler.step(model_output, t, trajs, target=target).prev_sample
             trajs[:, 0, :3] = 0.0
 
         trajs = trajs.to(torch.float32).clamp(-1, 1)
@@ -240,14 +223,14 @@ class Agent:
 
         while True:
             image = self.process_image(state["camera"][0])
-            if self.use_guidance:
+            if self.noise_scheduler.use_guidance:
                 target_point = self.process_next_waypoint(
                     next_point=state["next_waypoint"],
                     cur_point=state["cur_waypoint"],
-                    yaw=state["compass"][0],
+                    yaw=state["compass"][0][0],
                 )
             bev_image = state["bev"][0]
-            traj = self.generate_traj(image, target_point if self.use_guidance else None)
+            traj = self.generate_traj(image, target_point if self.noise_scheduler.use_guidance else None)
             if self.bev_save_path:
                 self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
                 count += 1

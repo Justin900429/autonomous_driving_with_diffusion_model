@@ -18,7 +18,7 @@ class GuidanceLoss(nn.Module):
             self.loss_list.append(getattr(module, loss_cls)(**loss_config))
 
         self.guidance_step = cfg.GUIDANCE.STEP
-        self.learning_rate = cfg.GUIDANCE.LR
+        self.scale = cfg.GUIDANCE.SCALE
 
     def compute_loss(self, x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         total_loss = 0
@@ -30,27 +30,18 @@ class GuidanceLoss(nn.Module):
         self,
         x_init: torch.Tensor,
         target: torch.Tensor,
-        guidance_threshold: Union[float, torch.Tensor] = None,
+        grad_scale: Union[float, torch.Tensor] = None,
     ) -> torch.Tensor:
         x_guidance = x_init.clone().detach()
-        if not x_guidance.requires_grad:
-            x_guidance.requires_grad_()
-        guidance_threshold = (
-            guidance_threshold.to(x_guidance.device) if guidance_threshold is not None else None
-        )
-        opt = torch.optim.Adam([x_guidance], lr=self.learning_rate)
-
         for _ in range(self.guidance_step):
             with torch.enable_grad():
+                if not x_guidance.requires_grad:
+                    x_guidance.requires_grad_()
                 loss = self.compute_loss(x_guidance, target)
-            loss.backward()
-            opt.step()
-            opt.zero_grad()
-
-            if guidance_threshold is not None:
-                with torch.no_grad():
-                    x_delta = x_guidance - x_init
-                    x_delta = torch.clamp(x_delta, -guidance_threshold, guidance_threshold)
-                    x_guidance.data = x_init + x_delta
+                grad = torch.autograd.grad([loss], [x_guidance])[0]
+            if grad_scale is not None:
+                grad *= grad_scale
+            x_guidance = x_guidance.detach()
+            x_guidance = x_guidance - 50 * grad
         x_guidance.requires_grad_(False)
         return x_guidance
