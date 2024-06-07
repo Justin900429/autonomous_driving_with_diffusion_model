@@ -5,35 +5,29 @@ from diffusers.schedulers import DDPMScheduler
 from diffusers.schedulers.scheduling_ddpm import DDPMSchedulerOutput
 from diffusers.utils.torch_utils import randn_tensor
 
-from control import GuidanceLoss
 
-
-class GuidanceDDPMScheduler(DDPMScheduler):
-    def __init__(self, cfg, **kwargs):
-        super(GuidanceDDPMScheduler, self).__init__(**kwargs)
-        self.use_guidance = cfg.GUIDANCE.LOSS_LIST is not None
-        if self.use_guidance:
-            self.guidance_loss = GuidanceLoss(cfg)
-
+class InpaintingDDPMScheduler(DDPMScheduler):
     def step(
         self,
-        model_output: torch.Tensor,
+        model_output: torch.FloatTensor,
         timestep: int,
-        sample: torch.Tensor,
+        sample: torch.FloatTensor,
         generator=None,
+        variance_noise: Optional[torch.FloatTensor] = None,
+        target_traj: Optional[torch.FloatTensor] = None,
+        target_mask: Optional[torch.FloatTensor] = None,
         return_dict: bool = True,
-        target: Optional[torch.Tensor] = None,
     ) -> Union[DDPMSchedulerOutput, Tuple]:
         """
         Predict the sample from the previous timestep by reversing the SDE. This function propagates the diffusion
         process from the learned model outputs (most often the predicted noise).
 
         Args:
-            model_output (`torch.Tensor`):
+            model_output (`torch.FloatTensor`):
                 The direct output from learned diffusion model.
             timestep (`float`):
                 The current discrete timestep in the diffusion chain.
-            sample (`torch.Tensor`):
+            sample (`torch.FloatTensor`):
                 A current instance of a sample created by the diffusion process.
             generator (`torch.Generator`, *optional*):
                 A random number generator.
@@ -103,34 +97,46 @@ class GuidanceDDPMScheduler(DDPMScheduler):
 
         # 5. Compute predicted previous sample µ_t
         # See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
-        pred_prev_sample = (
-            pred_original_sample_coeff * pred_original_sample
-            + current_sample_coeff * sample
-        )
 
-        # 6. Add noise
-        variance = 0
-        variance_scale = self._get_variance(t, predicted_variance=predicted_variance)
-        if t > 0:
-            device = model_output.device
-            variance_noise = randn_tensor(
+        noise = (
+            randn_tensor(
                 model_output.shape,
                 generator=generator,
-                device=device,
+                device=model_output.device,
                 dtype=model_output.dtype,
             )
-            if self.variance_type == "fixed_small_log":
-                variance = variance_scale * variance_noise
-            elif self.variance_type == "learned_range":
-                variance = variance_scale
-                variance = torch.exp(0.5 * variance) * variance_noise
-            else:
-                variance = (variance_scale**0.5) * variance_noise
+            if variance_noise is None
+            else variance_noise
+        )
 
-        if self.use_guidance and target is not None:
-            model_std = torch.exp(0.5 * variance_scale)
-            pred_prev_sample = self.guidance_loss(pred_prev_sample, target, model_std)
-        pred_prev_sample = pred_prev_sample + variance
+        std_dev_t = self._get_variance(timestep, predicted_variance) ** (0.5)
+        variance = 0
+        if timestep > 0:
+            variance = std_dev_t * noise
+
+        # 7. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
+        if target_traj is not None and target_mask is not None:
+            prev_unknown_part = (
+                pred_original_sample_coeff * pred_original_sample
+                + current_sample_coeff * sample
+                + variance
+            )
+
+            # 7-1. Algorithm 1 Line 5 https://arxiv.org/pdf/2201.09865.pdf
+            prev_known_part = (alpha_prod_t_prev**0.5) * target_traj + (
+                ((1.0 - alpha_prod_t_prev) ** 0.5) * (noise if timestep > 0 else 0)
+            )
+
+            # 7-2. Algorithm 1 Line 8 https://arxiv.org/pdf/2201.09865.pdf
+            pred_prev_sample = (
+                target_mask * prev_known_part + (1.0 - target_mask) * prev_unknown_part
+            )
+        else:
+            pred_prev_sample = (
+                pred_original_sample_coeff * pred_original_sample
+                + current_sample_coeff * sample
+                + variance
+            )
 
         if not return_dict:
             return (pred_prev_sample,)

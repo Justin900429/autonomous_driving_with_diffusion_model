@@ -5,40 +5,28 @@ from diffusers.schedulers import DDIMScheduler
 from diffusers.schedulers.scheduling_ddim import DDIMSchedulerOutput
 from diffusers.utils.torch_utils import randn_tensor
 
-from control import GuidanceLoss
 
-
-class GuidanceDDIMScheduler(DDIMScheduler):
-    def __init__(self, cfg, **kwargs):
-        super(GuidanceDDIMScheduler, self).__init__(**kwargs)
-        self.use_guidance = cfg.GUIDANCE.LOSS_LIST is not None
-        if self.use_guidance:
-            self.guidance_loss = GuidanceLoss(cfg)
-
+class InpaintingDDIMScheduler(DDIMScheduler):
     def step(
         self,
-        model_output: torch.Tensor,
+        model_output: torch.FloatTensor,
         timestep: int,
-        sample: torch.Tensor,
+        sample: torch.FloatTensor,
         eta: float = 0.0,
         use_clipped_model_output: bool = False,
         generator=None,
         variance_noise: Optional[torch.Tensor] = None,
+        target_traj: Optional[torch.FloatTensor] = None,
+        target_mask: Optional[torch.FloatTensor] = None,
         return_dict: bool = True,
-        target: Optional[torch.Tensor] = None,
     ) -> Union[DDIMSchedulerOutput, Tuple]:
         if self.num_inference_steps is None:
             raise ValueError(
                 "Number of inference steps is 'None', you need to run 'set_timesteps' after creating the scheduler"
             )
 
-        # Notation (<variable name> -> <name in paper>
-        # - pred_noise_t -> e_theta(x_t, t)
-        # - pred_original_sample -> f_theta(x_t, t) or x_0
-        # - std_dev_t -> sigma_t
-        # - eta -> η
-        # - pred_sample_direction -> "direction pointing to x_t"
-        # - pred_prev_sample -> "x_t-1"
+        # See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
+        # Ideally, read DDIM paper in-detail understanding
 
         # 1. get previous step value (=t-1)
         prev_timestep = (
@@ -105,13 +93,39 @@ class GuidanceDDIMScheduler(DDIMScheduler):
         ) * pred_epsilon
 
         # 7. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-        prev_sample = (
-            alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
-        )
+        if target_traj is not None and target_mask is not None:
+            noise = (
+                randn_tensor(
+                    model_output.shape,
+                    generator=generator,
+                    device=model_output.device,
+                    dtype=model_output.dtype,
+                )
+                if variance_noise is None
+                else variance_noise
+            )
 
-        if self.use_guidance and target is not None:
-            model_std = torch.exp(0.5 * variance)
-            prev_sample = self.guidance_loss(prev_sample, target, model_std)
+            prev_unknown_part = (
+                (alpha_prod_t_prev**0.5) * pred_original_sample
+                + pred_sample_direction
+                + variance
+            )
+
+            # 7-1. Algorithm 1 Line 5 https://arxiv.org/pdf/2201.09865.pdf
+            prev_known_part = (alpha_prod_t_prev**0.5) * target_traj + (
+                ((1.0 - alpha_prod_t_prev) ** 0.5) * (noise if timestep > 0 else 0)
+            )
+
+            # 7-2. Algorithm 1 Line 8 https://arxiv.org/pdf/2201.09865.pdf
+            prev_sample = (
+                target_mask * prev_known_part + (1.0 - target_mask) * prev_unknown_part
+            )
+        else:
+            prev_sample = (
+                (alpha_prod_t_prev**0.5) * pred_original_sample
+                + pred_sample_direction
+                + variance
+            )
 
         if eta > 0:
             if variance_noise is not None and generator is not None:
