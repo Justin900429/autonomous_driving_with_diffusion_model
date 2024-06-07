@@ -93,6 +93,12 @@ class Agent:
         if cfg.EVAL.SCHEDULER == "dpm":
             scheduler_kwargs["lambda_min_clipped"] = -5.1
         self.noise_scheduler = SCHEDULER_FUNC[cfg.EVAL.SCHEDULER](**scheduler_kwargs)
+        traj_shape = (
+            1,
+            cfg.MODEL.HORIZON,
+            cfg.MODEL.TRANSITION_DIM,
+        )
+        self.init_trajs = torch.randn(traj_shape, device=self.device)
         self.model = build_model(cfg).to(self.device)
         if cfg.EVAL.CHECKPOINT:
             weight = torch.load(cfg.EVAL.CHECKPOINT, map_location=self.device)
@@ -104,15 +110,10 @@ class Agent:
 
     def generate_traj(self, image, target=None):
         self.model.eval()
-        traj_shape = (
-            1,
-            cfg.MODEL.HORIZON,
-            cfg.MODEL.TRANSITION_DIM,
-        )
-        trajs = torch.randn(traj_shape, device=self.device)
+        trajs = self.init_trajs.clone().detach()
         image = image.to(self.device)
 
-        trajs[:, 0, :2] = 0.0
+        trajs[:, 0, :3] = 0.0
 
         self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
         prev_t = None
@@ -128,7 +129,7 @@ class Agent:
                 model_std = torch.exp(0.5 * posterior_variance)
                 model_output = self.guidance_loss(model_output, target, model_std)
             trajs = self.noise_scheduler.step(model_output, t, trajs).prev_sample
-            trajs[:, 0, :2] = 0.0
+            trajs[:, 0, :3] = 0.0
             prev_t = t
 
         trajs = trajs.to(torch.float32).clamp(-1, 1)
