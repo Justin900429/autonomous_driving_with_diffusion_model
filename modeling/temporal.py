@@ -5,15 +5,8 @@ import torch
 import torch.nn as nn
 from einops.layers.torch import Rearrange
 
-from .helpers import (
-    Conv1dBlock,
-    Downsample1d,
-    LinearAttention,
-    PreNorm,
-    Residual,
-    SinusoidalPosEmb,
-    Upsample1d,
-)
+from .helpers import (Conv1dBlock, Downsample1d, LinearAttention, PreNorm,
+                      Residual, SinusoidalPosEmb, Upsample1d)
 from .resnet import resnet34
 
 
@@ -61,6 +54,7 @@ class TemporalMapUnet(nn.Module):
         dim=128,
         dim_mults=(1, 2, 4, 8),
         diffuser_building_block="concat",
+        use_cond=False,
     ):
         super().__init__()
 
@@ -77,6 +71,13 @@ class TemporalMapUnet(nn.Module):
         self.perception = resnet34(pretrained=True)
         self.perception.fc = nn.Linear(self.perception.fc.in_features, time_dim)
 
+        self.use_cond = use_cond
+        if use_cond:
+            self.cond_mlp = nn.Sequential(
+                nn.Linear(2, time_dim),
+                nn.Mish(),
+                nn.Linear(time_dim, time_dim),
+            )
         self.time_mlp = nn.Sequential(
             SinusoidalPosEmb(time_dim),
             nn.Linear(time_dim, time_dim * 4),
@@ -171,14 +172,18 @@ class TemporalMapUnet(nn.Module):
         )
         self.magic_num = 23.315
 
-    def forward(self, x, img, time):
+    def forward(self, x, img, time, cond=None):
         """
         x : [ B, T, D ]
-        cond_feat : [ B, C, H, W]
+        img : [ B, C, H, W]
+        cond: None or [B, 2]
         """
         img_feature = self.perception(img)
         x = einops.rearrange(x, "b h t -> b t h")
         t = self.time_mlp(time)
+        if self.use_cond:
+            cond = cond if cond is not None else torch.zeros((x.shape[0], 2), device=x.device)
+            t += self.cond_mlp(cond)
         t = torch.cat([t, img_feature], dim=-1)
 
         h = []
@@ -212,5 +217,6 @@ def build_model(cfg) -> TemporalMapUnet:
         dim=cfg.MODEL.DIM,
         dim_mults=cfg.MODEL.DIM_MULTS,
         diffuser_building_block=cfg.MODEL.DIFFUSER_BUILDING_BLOCK,
+        use_cond=cfg.TRAIN.USE_COND,
     )
     return model

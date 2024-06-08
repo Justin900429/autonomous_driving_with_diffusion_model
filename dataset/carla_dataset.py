@@ -33,12 +33,13 @@ class TrajDataset(torch.utils.data.Dataset):
         with open(waypoint_name, "r") as f:
             waypoints = f.readlines()
 
+        target_point = torch.tensor(list(map(float, waypoints[0].strip().split())))
         waypoints = torch.tensor(
-            [list(map(float, line.strip().split())) for line in waypoints if len(line.strip()) != 0]
+            [list(map(float, line.strip().split())) for line in waypoints[1:] if len(line.strip()) != 0]
         )
         waypoints = waypoints.clip(-1, 1)
         assert len(waypoints) == 16
-        return img, waypoints
+        return img, waypoints, target_point
 
 
 def get_loader(cfg, train: bool, img_transforms: Callable) -> torch.utils.data.DataLoader:

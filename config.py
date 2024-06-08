@@ -26,9 +26,9 @@ def create_cfg():
 
     # ======== Training set =======
     cfg.TRAIN = CN()
-
-    # Log and save
     cfg.TRAIN.RESUME = None
+    cfg.TRAIN.USE_COND = True
+    cfg.TRAIN.USE_COND_PROB = 0.7
     cfg.TRAIN.LOG_INTERVAL = 20
     cfg.TRAIN.SAVE_INTERVAL = 3000
     cfg.TRAIN.SAMPLE_INTERVAL = 3000
@@ -89,8 +89,8 @@ def create_cfg():
     cfg.GUIDANCE.LOSS_LIST = [
         ("TargetGuidance", {}),
     ]
-    cfg.GUIDANCE.STEP = 1
-    cfg.GUIDANCE.LR = 0.3
+    cfg.GUIDANCE.STEP = 2
+    cfg.GUIDANCE.SCALE = 0.1
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()

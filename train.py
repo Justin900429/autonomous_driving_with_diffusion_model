@@ -231,19 +231,22 @@ def main(args):
     while True:
         model.train()
         try:
-            imgs, trajs = next(loader)
+            imgs, trajs, target_point = next(loader)
         except StopIteration:
             loader = iter(dataloader)
-            imgs, trajs = next(loader)
+            imgs, trajs, target_point = next(loader)
         imgs = imgs.to(weight_dtype)
         trajs = trajs.to(weight_dtype)
+        target_point = target_point.to(weight_dtype)
 
         t = torch.randint(0, cfg.TRAIN.TIME_STEPS, (trajs.shape[0],), device=device).long()
         noise = torch.randn_like(trajs, dtype=weight_dtype)
         noise_data = noise_scheduler.add_noise(trajs, noise, t)
         noise_data[..., 0, :3] = 0
         with accelerator.accumulate(model):
-            pred = model(noise_data, imgs, t)
+            if random.random() > cfg.TRAIN.USE_COND_PROB:
+                target_point = None
+            pred = model(noise_data, imgs, t, cond=target_point)
 
             if cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE == "epsilon":
                 loss = torch.nn.functional.mse_loss(pred.float(), noise.float())
