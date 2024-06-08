@@ -92,6 +92,20 @@ class Agent:
         ev_handler =  self.env.envs[0].env.unwrapped.ev_handler
         if ev_handler is not None:
             self.car_agent = ev_handler.ego_vehicles["hero"].vehicle
+            
+    def world_to_agent(self, world_pos, agent_pos, agent_yaw):
+        x, y = world_pos
+        x -= agent_pos[0]
+        y -= agent_pos[1]
+        theta = agent_yaw
+        R = np.array(
+            [
+                [np.cos(theta), -np.sin(theta)],
+                [np.sin(theta), np.cos(theta)],
+            ]
+        )
+        x, y = R.T.dot(np.array([x, y])).reshape(-1)
+        return x, y
 
     def run(self):
         state = self.env.reset()
@@ -99,6 +113,7 @@ class Agent:
         cur_traj = []
         target_bev = None
         init_compass = 0.0
+        target_pos = None
         prev_red = False
         count_to_collect = 0
         step_to_reset = 0
@@ -139,6 +154,7 @@ class Agent:
                 Image.fromarray(camera).save(save_front_path)
                 target_bev = np.copy(bev)
                 init_compass = state["compass"][0]
+                target_pos = state["next_waypoint"][0]
 
                 if state["at_red_light"][0] == 1:
                     for _ in range(self.total_frame_should_pass):
@@ -157,6 +173,7 @@ class Agent:
             else:
                 save_bev_path = os.path.join(self.save_root, "bev", f"{self.cur_save:06d}.png")
                 added_traj = []
+                theta = init_compass + np.pi / 2
                 for idx in range(len(cur_traj) - 1):
                     traj = np.copy(cur_traj[idx][:2])
                     car_state = np.copy(cur_traj[idx][2:4])
@@ -166,15 +183,15 @@ class Agent:
                         car_state[0] -= 1
                     elif car_state[0] < -1:
                         car_state[0] += 1
-                    theta = init_compass + np.pi / 2
-                    R = np.array(
-                        [
-                            [np.cos(theta), -np.sin(theta)],
-                            [np.sin(theta), np.cos(theta)],
-                        ]
-                    )
-                    traj = np.array([traj[0] - cur_traj[0][0], traj[1] - cur_traj[0][1]])
-                    traj = R.T.dot(traj).reshape(-1)
+                    # R = np.array(
+                    #     [
+                    #         [np.cos(theta), -np.sin(theta)],
+                    #         [np.sin(theta), np.cos(theta)],
+                    #     ]
+                    # )
+                    # traj = np.array([traj[0] - cur_traj[0][0], traj[1] - cur_traj[0][1]])
+                    # traj = R.T.dot(traj).reshape(-1)
+                    traj = self.world_to_agent(traj, cur_traj[0][:2], theta)
                     pixel_x = way_point_to_pixel(traj[1])
                     pixel_y = way_point_to_pixel(-traj[0])
                     target_bev = cv2.circle(
@@ -188,9 +205,13 @@ class Agent:
                             *action.tolist()
                         )
                     )
+                target_pos_traj = self.world_to_agent(
+                    target_pos, cur_traj[0][:2], theta
+                )
                 with open(
                     os.path.join(self.save_root, "waypoints", f"{self.cur_save:06d}.txt"), "w"
                 ) as f:
+                    f.write(f"{target_pos_traj[1] / self.magic_number} {-target_pos_traj[0] / self.magic_number}\n")
                     for traj in added_traj:
                         f.write(f"{' '.join(map(str, traj))}\n")
                 Image.fromarray(target_bev).save(save_bev_path)
