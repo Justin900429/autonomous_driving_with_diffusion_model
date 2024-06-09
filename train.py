@@ -22,6 +22,7 @@ from tqdm import tqdm
 from config import create_cfg, merge_possible_with_base, show_config
 from dataset import get_loader
 from misc import AverageMeter, MetricMeter
+from misc.constant import GuidanceType
 from modeling import build_model
 
 COLOR_LIST = [
@@ -225,6 +226,8 @@ def main(args):
 
     max_iter = cfg.TRAIN.MAX_ITER
     loader = iter(dataloader)
+    
+    use_cond = GuidanceType[cfg.TRAIN.USE_COND]
 
     cur_iter = start_iter
     start = time.time()
@@ -244,7 +247,7 @@ def main(args):
         noise_data = noise_scheduler.add_noise(trajs, noise, t)
         noise_data[..., 0, :3] = 0
         with accelerator.accumulate(model):
-            if random.random() > cfg.TRAIN.USE_COND_PROB:
+            if use_cond == GuidanceType.FREE_GUIDANCE and random.random() > cfg.TRAIN.USE_FREE_COND_PROB:
                 target_point = None
             pred = model(noise_data, imgs, t, cond=target_point)
 

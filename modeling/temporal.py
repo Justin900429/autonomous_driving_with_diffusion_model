@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 from einops.layers.torch import Rearrange
 
+from misc.constant import GuidanceType
+
 from .helpers import (Conv1dBlock, Downsample1d, LinearAttention, PreNorm,
                       Residual, SinusoidalPosEmb, Upsample1d)
 from .resnet import resnet34
@@ -54,7 +56,7 @@ class TemporalMapUnet(nn.Module):
         dim=128,
         dim_mults=(1, 2, 4, 8),
         diffuser_building_block="concat",
-        use_cond=False,
+        use_cond=GuidanceType.NO_GUIDANCE,
     ):
         super().__init__()
 
@@ -72,7 +74,7 @@ class TemporalMapUnet(nn.Module):
         self.perception.fc = nn.Linear(self.perception.fc.in_features, time_dim)
 
         self.use_cond = use_cond
-        if use_cond:
+        if use_cond == GuidanceType.FREE_GUIDANCE:
             self.cond_mlp = nn.Sequential(
                 nn.Linear(2, time_dim),
                 nn.Mish(),
@@ -181,7 +183,7 @@ class TemporalMapUnet(nn.Module):
         img_feature = self.perception(img)
         x = einops.rearrange(x, "b h t -> b t h")
         t = self.time_mlp(time)
-        if self.use_cond:
+        if self.use_cond == GuidanceType.FREE_GUIDANCE:
             cond = cond if cond is not None else torch.zeros((x.shape[0], 2), device=x.device)
             if t.shape[0] != cond.shape[0]:
                 t = t.repeat(cond.shape[0] // t.shape[0], 1)
@@ -221,6 +223,6 @@ def build_model(cfg) -> TemporalMapUnet:
         dim=cfg.MODEL.DIM,
         dim_mults=cfg.MODEL.DIM_MULTS,
         diffuser_building_block=cfg.MODEL.DIFFUSER_BUILDING_BLOCK,
-        use_cond=cfg.TRAIN.USE_COND,
+        use_cond=GuidanceType[cfg.TRAIN.USE_COND],
     )
     return model

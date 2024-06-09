@@ -5,6 +5,8 @@ from colorama import Fore, Style
 from tabulate import tabulate
 from yacs.config import CfgNode as CN
 
+from misc.constant import GuidanceType
+
 
 def create_cfg():
     cfg = CN()
@@ -27,8 +29,8 @@ def create_cfg():
     # ======== Training set =======
     cfg.TRAIN = CN()
     cfg.TRAIN.RESUME = None
-    cfg.TRAIN.USE_COND = False
-    cfg.TRAIN.USE_COND_PROB = 0.7
+    cfg.TRAIN.USE_COND = "NO_GUIDANCE"
+    cfg.TRAIN.USE_FREE_COND_PROB = 0.7
     cfg.TRAIN.LOG_INTERVAL = 20
     cfg.TRAIN.SAVE_INTERVAL = 3000
     cfg.TRAIN.SAMPLE_INTERVAL = 3000

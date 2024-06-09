@@ -1,4 +1,6 @@
 _BASE_: ../default.yaml
+TRAIN:
+  USE_COND: CLASSIFIER_GUIDANCE
 GUIDANCE:
   LOSS_LIST:
   - TargetGuidance
