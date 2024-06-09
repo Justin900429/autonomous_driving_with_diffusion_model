@@ -29,7 +29,7 @@ Afterwards, please modify the `carla_sh_path` in `config/train_rl.yaml` to yours
 
 ## Data setup 📊
 
->[!INFO]
+>[!NOTE]
 >Users can choose to download the provided data or collect the data by themselves.
 
 ### Downloading the data 📦
