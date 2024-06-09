@@ -56,3 +56,22 @@ python train.py --config configs/default.yaml
 # with multi-gpus
 accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} train.py --config configs/default.yaml
 ```
+
+## Interact with the model 🕹
+
+```shell
+python interact.py --config {CONFIG_PATH} --plot-on-world --save-bev-path {PATH_TO_SAVE_BEV_IMAGES} --opts EVAL.CHECKPOINT final.pth
+
+# Concrete example
+# 1. without any guidance
+python interact.py --config configs/default.yaml --plot-on-world --save-bev-path bev_images  --opts EVAL.CHECKPOINT final.pth
+
+# 2. with classifier-free guidance
+python interact.py --config configs/guidance/free_guidance.yaml --plot-on-world --save-bev-path bev_images  --opts EVAL.CHECKPOINT final.pth
+
+# 3. with classifier guidance
+python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-world --save-bev-path bev_images  --opts EVAL.CHECKPOINT final.pth
+```
+
+> [!NOTE]
+> Both `--plot-on-world` and `--save-bev-path` are optional.
