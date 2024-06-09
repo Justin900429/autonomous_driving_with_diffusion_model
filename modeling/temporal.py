@@ -168,10 +168,21 @@ class TemporalMapUnet(nn.Module):
             if not is_last:
                 horizon = horizon * 2
 
-        self.final_conv = nn.Sequential(
-            Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
-            nn.Conv1d(final_up_dim, transition_dim, 1),
-        )
+        if use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
+            state_dim = transition_dim - 3
+            self.act_conv = nn.Sequential(
+                Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
+                nn.Conv1d(final_up_dim, 3, 1),
+            )
+            self.state_conv = nn.Sequential(
+                Conv1dBlock(3, final_up_dim, kernel_size=5),
+                nn.Conv1d(final_up_dim, state_dim, 1),
+            )
+        else:
+            self.final_conv = nn.Sequential(
+                Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
+                nn.Conv1d(final_up_dim, transition_dim, 1),
+            )
         self.magic_num = 23.315
 
     def forward(self, x, img, time, cond=None):
@@ -210,7 +221,12 @@ class TemporalMapUnet(nn.Module):
             x = attn(x)
             x = upsample(x)
 
-        x = self.final_conv(x)
+        if self.use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
+            action = self.act_conv(x)
+            state = self.state_conv(action)
+            x = torch.cat([state, action], dim=1)
+        else:
+            x = self.final_conv(x)
         x = einops.rearrange(x, "b t h -> b h t")
         return x
 
