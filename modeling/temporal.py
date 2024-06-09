@@ -1,5 +1,3 @@
-from collections import deque
-
 import einops
 import torch
 import torch.nn as nn
@@ -7,8 +5,15 @@ from einops.layers.torch import Rearrange
 
 from misc.constant import GuidanceType
 
-from .helpers import (Conv1dBlock, Downsample1d, LinearAttention, PreNorm,
-                      Residual, SinusoidalPosEmb, Upsample1d)
+from .helpers import (
+    Conv1dBlock,
+    Downsample1d,
+    LinearAttention,
+    PreNorm,
+    Residual,
+    SinusoidalPosEmb,
+    Upsample1d,
+)
 from .resnet import resnet34
 
 
@@ -223,7 +228,7 @@ class TemporalMapUnet(nn.Module):
 
         if self.use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
             action = self.act_conv(x)
-            state = self.state_conv(action.detach())
+            state = self.state_conv(action)
             x = torch.cat([state, action], dim=1)
         else:
             x = self.final_conv(x)
