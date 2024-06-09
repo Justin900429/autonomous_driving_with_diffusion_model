@@ -1,6 +1,6 @@
 # Carla Diffusion
 
-## Setup 🚀
+## A Setup 🚀
 
 Please ensure you have installed the Carla simulator and the Python API.
 
@@ -27,19 +27,19 @@ pip install carla=={CARLA_VERSION}
 
 Afterwards, please modify the `carla_sh_path` in `config/train_rl.yaml` to yours.
 
-## Data setup 📊
+## B. Data setup 📊
 
 >[!NOTE]
 >Users can choose to download the provided data or collect the data by themselves.
 
-### Downloading the data 📦
+### (Option 1) Downloading the data 📦
 
 ```shell
 gdown 1JfHD3bW0oBrjwQJ-nZz5GhVfLN7Nkn8R -O data.zip
 unzip -q data.zip && rm data.zip
 ```
 
-### Collecting the data 📡
+### (Option 2) Collecting the data 📡
 
 ```shell
 python misc/data_collect.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_DATA}
@@ -61,9 +61,9 @@ python misc/collect_loop.py --save-path data/ --save-num 5000
 
 This help restart the simulation when the simulation is crashed but the number of data does not reach the target.
 
-## Usage
+## C Usage 🛠
 
-### Model training 🧠
+### C-1 Model training 🧠
 
 Users can choose the config file as shown below to train the model.
 
@@ -81,7 +81,7 @@ python train.py --config {CONFIG_PATH}
 accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} train.py --config {CONFIG_PATH}
 ```
 
-### Interact with the model 🕹
+### C-2 Interact with the model 🕹
 
 >[!TIP]
 > Check the description above to choose the config file.
