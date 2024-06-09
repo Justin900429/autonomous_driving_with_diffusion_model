@@ -5,7 +5,7 @@
 Please ensure you have installed the Carla simulator and the Python API.
 
 > [!WARNING]
-> You should checkout your own cuda version and install your own PyTorch version. We provide an example of PyTorch 2.2.0 with cuda 12.1.
+> You should checkout your own cuda version and install your own PyTorch version. We provide an example of PyTorch 2.2.2 with cuda 12.1.
 
 ```shell
 git clone https://github.com/Justin900429/carla_diffusion.git
