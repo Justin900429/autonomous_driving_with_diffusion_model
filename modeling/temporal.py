@@ -1,3 +1,5 @@
+import os
+
 import einops
 import torch
 import torch.nn as nn
@@ -72,7 +74,9 @@ class TemporalMapUnet(nn.Module):
 
         dims = [transition_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
-        print(f"[ models/temporal ] Channel dimensions: {in_out}")
+
+        if int(os.environ.get("LOCAL_RANK", "-1")) <= 0:
+            print(f"[ models/temporal ] Channel dimensions: {in_out}")
 
         time_dim = dim
         self.perception = resnet34(pretrained=True)
