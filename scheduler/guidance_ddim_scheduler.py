@@ -11,8 +11,8 @@ from control import GuidanceLoss
 class GuidanceDDIMScheduler(DDIMScheduler):
     def __init__(self, cfg, **kwargs):
         super(GuidanceDDIMScheduler, self).__init__(**kwargs)
-        self.use_guidance = cfg.GUIDANCE.LOSS_LIST is not None
-        if self.use_guidance:
+        self.use_classifier_guidance = cfg.GUIDANCE.LOSS_LIST is not None
+        if self.use_classifier_guidance:
             self.guidance_loss = GuidanceLoss(cfg)
 
     def step(
@@ -109,7 +109,7 @@ class GuidanceDDIMScheduler(DDIMScheduler):
             alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
         )
 
-        if self.use_guidance and target is not None:
+        if self.use_classifier_guidance and target is not None:
             model_std = torch.exp(0.5 * variance)
             prev_sample = self.guidance_loss(prev_sample, target, model_std)
 

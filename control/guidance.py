@@ -18,7 +18,7 @@ class GuidanceLoss(nn.Module):
             self.loss_list.append(getattr(module, loss_cls)(**loss_config))
 
         self.guidance_step = cfg.GUIDANCE.STEP
-        self.scale = cfg.GUIDANCE.SCALE
+        self.scale = cfg.GUIDANCE.CLASSIFIER_SCALE
 
     def compute_loss(self, x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         total_loss = 0
@@ -42,6 +42,6 @@ class GuidanceLoss(nn.Module):
             if grad_scale is not None:
                 grad *= grad_scale
             x_guidance = x_guidance.detach()
-            x_guidance = x_guidance - 50 * grad
+            x_guidance = x_guidance - 5 * grad
         x_guidance.requires_grad_(False)
         return x_guidance

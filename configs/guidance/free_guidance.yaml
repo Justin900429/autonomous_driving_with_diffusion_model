@@ -1,0 +1,5 @@
+_BASE_: ../default.yaml
+TRAIN:
+  USE_COND: True
+GUIDANCE:
+  USE_FREE_GUIDANCE: True

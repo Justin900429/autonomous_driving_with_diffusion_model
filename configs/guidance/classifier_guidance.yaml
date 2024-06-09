@@ -1,0 +1,4 @@
+_BASE_: ../default.yaml
+GUIDANCE:
+  LOSS_LIST:
+  - TargetGuidance

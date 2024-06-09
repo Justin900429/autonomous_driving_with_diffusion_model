@@ -183,6 +183,10 @@ class TemporalMapUnet(nn.Module):
         t = self.time_mlp(time)
         if self.use_cond:
             cond = cond if cond is not None else torch.zeros((x.shape[0], 2), device=x.device)
+            if t.shape[0] != cond.shape[0]:
+                t = t.repeat(cond.shape[0] // t.shape[0], 1)
+            if img_feature.shape[0] != cond.shape[0]:
+                img_feature = img_feature.repeat(cond.shape[0] // img_feature.shape[0], 1)
             t += self.cond_mlp(cond)
         t = torch.cat([t, img_feature], dim=-1)
 

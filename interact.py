@@ -12,7 +12,7 @@ from hydra import compose, initialize
 from torchvision import transforms as T
 
 from config import create_cfg, merge_possible_with_base, show_config
-from control import Controller, GuidanceLoss
+from control import Controller
 from misc.create_agent import create_env, create_server
 from misc.load_param import copy_parameters
 from modeling import build_model
@@ -50,7 +50,9 @@ def get_random_seed():
 
 
 class Agent:
-    def __init__(self, cfg, plot_on_world=False, bev_save_path=None, off_screen=False, seed=None):
+    def __init__(
+        self, cfg, plot_on_world=False, bev_save_path=None, off_screen=False, seed=None
+    ):
         with initialize(config_path="configs", version_base="1.3.2"):
             env_config = compose(config_name=cfg.ENV.CONFIG_PATH)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,6 +61,7 @@ class Agent:
             env_config, self.server_manager, get_random_seed() if seed is None else seed
         )
         self.env_injector = self.env.envs[0].env.unwrapped
+        self.car_agent = None
         self.cfg = cfg
 
         self.plot_on_world = plot_on_world
@@ -73,6 +76,7 @@ class Agent:
             ]
         )
 
+        self.use_free_guidance = cfg.GUIDANCE.USE_FREE_GUIDANCE
         self.controller = Controller(cfg)
         scheduler_kwargs = dict(
             num_train_timesteps=cfg.TRAIN.SAMPLE_STEPS,
@@ -98,26 +102,52 @@ class Agent:
         if cfg.EVAL.CHECKPOINT:
             weight = torch.load(cfg.EVAL.CHECKPOINT, map_location=self.device)
             self.model.load_state_dict(weight["state_dict"])
-            copy_parameters(weight["ema_state_dict"]["shadow_params"], self.model.parameters())
+            copy_parameters(
+                weight["ema_state_dict"]["shadow_params"], self.model.parameters()
+            )
             del weight
             torch.cuda.empty_cache()
             print("weights are loaded")
+
+    def get_car_agent(self):
+        ev_handler = self.env_injector.ev_handler
+        if ev_handler is not None:
+            self.car_agent = ev_handler.ego_vehicles["hero"]
 
     def generate_traj(self, image, target=None):
         self.model.eval()
         trajs = self.init_trajs.clone().detach()
         image = image.to(self.device)
+        if target is not None and self.use_free_guidance:
+            target = (
+                target.repeat(trajs.size(0), 1)
+                if target is not None
+                else None
+            )
+            target = torch.cat(
+                [
+                    target,
+                    torch.zeros_like(target),
+                ],
+                dim=0,
+            )
 
         trajs[:, 0, :3] = 0.0
-        self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
+        self.noise_scheduler.set_timesteps(
+            self.cfg.EVAL.SAMPLE_STEPS, device=self.device
+        )
         for t in self.noise_scheduler.timesteps:
+            input_trajs = torch.cat([trajs, trajs], dim=0)  # [B * 2, H, 7]
             with torch.no_grad():
-                model_output = self.model(
-                    trajs,
-                    image,
-                    t.reshape(-1),
-                )
-            trajs = self.noise_scheduler.step(model_output, t, trajs, target=target).prev_sample
+                model_output_with_cond, model_output_without_cond = self.model(
+                    input_trajs, image, t.reshape(-1), cond=target
+                ).chunk(2, dim=0)
+            model_output = model_output_without_cond + self.cfg.GUIDANCE.FREE_SCALE * (
+                model_output_with_cond - model_output_without_cond
+            )
+            trajs = self.noise_scheduler.step(
+                model_output, t, trajs, target=target
+            ).prev_sample
             trajs[:, 0, :3] = 0.0
 
         trajs = trajs.to(torch.float32).clamp(-1, 1)
@@ -128,23 +158,33 @@ class Agent:
         image = self.image_transform(image).unsqueeze(0).to(self.device)
         return image
 
+    def get_future_waypoints(self, num_points=16):
+        self.get_car_agent()
+        waypoints = self.car_agent._global_route[1 : num_points + 1]
+        waypoints = np.array(
+            [
+                [waypoint[0].transform.location.x, waypoint[0].transform.location.y]
+                for waypoint in waypoints
+            ]
+        )
+        return waypoints
+
     def process_next_waypoint(self, next_point, cur_point, yaw):
         if math.isnan(yaw):
             yaw = 0.0
 
         yaw = yaw + math.pi / 2.0
         R = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
-
-        local_command_point = np.array(
-            [next_point[0][0] - cur_point[0][0], next_point[0][1] - cur_point[0][1]]
-        )
-        local_command_point = R.T.dot(local_command_point).reshape(-1)
-
+        local_command_point = next_point - cur_point  # (H, 2)
+        local_command_point = R.T.dot(local_command_point.T).T  # (H, 2)
         target_point = torch.FloatTensor(
-            [
-                local_command_point[1] / self.model.magic_num,
-                -local_command_point[0] / self.model.magic_num,
-            ]
+            np.stack(
+                [
+                    local_command_point[:, 1] / self.model.magic_num,
+                    -local_command_point[:, 0] / self.model.magic_num,
+                ],
+                axis=-1,
+            )
         ).to(self.device)
         return target_point
 
@@ -152,9 +192,9 @@ class Agent:
         if command < 0:
             command = 4
         command -= 1
-        one_hot_command = torch.nn.functional.one_hot(torch.tensor([command]), num_classes=6).to(
-            self.device, dtype=torch.float32
-        )
+        one_hot_command = torch.nn.functional.one_hot(
+            torch.tensor([command]), num_classes=6
+        ).to(self.device, dtype=torch.float32)
 
         return one_hot_command
 
@@ -174,7 +214,9 @@ class Agent:
         return np.array([throttle_res, steer_res, brake_res])
 
     def process_control(self, traj, state, target_point):
-        gt_velocity = torch.FloatTensor([state["state"][0][1]]).to(self.device, dtype=torch.float32)
+        gt_velocity = torch.FloatTensor([state["state"][0][1]]).to(
+            self.device, dtype=torch.float32
+        )
         renew_traj = torch.stack((-traj[..., 0], traj[..., 1]), dim=-1)
         renew_target = torch.stack([-target_point[0], target_point[1]], dim=-1)
         throttle_res, steer_res, brake_res = self.controller.control_pid(
@@ -222,23 +264,36 @@ class Agent:
         count = 0
 
         while True:
+            target_point = None
             image = self.process_image(state["camera"][0])
-            if self.noise_scheduler.use_guidance:
+            if self.noise_scheduler.use_classifier_guidance or self.use_free_guidance:
                 target_point = self.process_next_waypoint(
-                    next_point=state["next_waypoint"],
+                    next_point= state["next_waypoint"] if self.use_free_guidance else self.get_future_waypoints(),
                     cur_point=state["cur_waypoint"],
                     yaw=state["compass"][0][0],
                 )
             bev_image = state["bev"][0]
-            traj = self.generate_traj(image, target_point if self.noise_scheduler.use_guidance else None)
+            traj = self.generate_traj(
+                image,
+                target_point
+                if (
+                    self.noise_scheduler.use_classifier_guidance
+                    or self.use_free_guidance
+                )
+                else None,
+            )
             if self.bev_save_path:
-                self.plot_to_bev(bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg")
+                self.plot_to_bev(
+                    bev_image, traj[0, :, :2], f"{self.bev_save_path}/bev_{count}.jpg"
+                )
                 count += 1
             if traj.size(-1) > 2:
                 control = self.post_process_control(*traj[0, 0, -3:].cpu().numpy())
             else:
                 control = self.process_control(
-                    traj[0, :4, :2], state, target_point if self.use_guidance else traj[0, 4, :2]
+                    traj[0, :4, :2],
+                    state,
+                    target_point if self.use_free_guidance else traj[0, 4, :2],
                 )
             if self.plot_on_world:
                 world_point = self.agent_to_world(

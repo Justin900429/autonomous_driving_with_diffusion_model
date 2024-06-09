@@ -11,8 +11,8 @@ from control import GuidanceLoss
 class GuidanceDDPMScheduler(DDPMScheduler):
     def __init__(self, cfg, **kwargs):
         super(GuidanceDDPMScheduler, self).__init__(**kwargs)
-        self.use_guidance = cfg.GUIDANCE.LOSS_LIST is not None
-        if self.use_guidance:
+        self.use_classifier_guidance = cfg.GUIDANCE.LOSS_LIST is not None
+        if self.use_classifier_guidance:
             self.guidance_loss = GuidanceLoss(cfg)
 
     def step(
@@ -127,7 +127,7 @@ class GuidanceDDPMScheduler(DDPMScheduler):
             else:
                 variance = (variance_scale**0.5) * variance_noise
 
-        if self.use_guidance and target is not None:
+        if self.use_classifier_guidance and target is not None:
             model_std = torch.exp(0.5 * variance_scale)
             pred_prev_sample = self.guidance_loss(pred_prev_sample, target, model_std)
         pred_prev_sample = pred_prev_sample + variance
