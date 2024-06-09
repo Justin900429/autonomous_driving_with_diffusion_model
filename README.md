@@ -1,6 +1,6 @@
 # Carla Diffusion
 
-## A Setup 🚀
+## A. Setup 🚀
 
 Please ensure you have installed the Carla simulator and the Python API.
 
@@ -61,9 +61,9 @@ python misc/collect_loop.py --save-path data/ --save-num 5000
 
 This help restart the simulation when the simulation is crashed but the number of data does not reach the target.
 
-## C Usage 🛠
+## C. Usage 🛠
 
-### C-1 Model training 🧠
+### C-1. Model training 🧠
 
 Users can choose the config file as shown below to train the model.
 
@@ -81,7 +81,7 @@ python train.py --config {CONFIG_PATH}
 accelerate launch --multi_gpu --num_processes={NUM_OF_GPU} train.py --config {CONFIG_PATH}
 ```
 
-### C-2 Interact with the model 🕹
+### C-2. Interact with the model 🕹
 
 >[!TIP]
 > Check the description above to choose the config file.
