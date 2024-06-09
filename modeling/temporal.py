@@ -184,11 +184,7 @@ class TemporalMapUnet(nn.Module):
                 Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
                 nn.Conv1d(final_up_dim, 3, 1),
             )
-            # self.state_conv = nn.Sequential(
-            #     Conv1dBlock(3, final_up_dim, kernel_size=5),
-            #     nn.Conv1d(final_up_dim, state_dim, 1),
-            # )
-            self.state_conv = TrajPredict(
+            self.state_pred = TrajPredict(
                 in_dim=3, out_dim=state_dim, pred_len=horizon - 1, hidden_dim=64, num_layers=2
             )
         else:
@@ -205,38 +201,38 @@ class TemporalMapUnet(nn.Module):
         """
         img_feature = self.perception(img)
         x = einops.rearrange(x, "b h t -> b t h")
-        t = self.time_mlp(time)
+        time_embed = self.time_mlp(time)
         if self.use_cond == GuidanceType.FREE_GUIDANCE:
             cond = cond if cond is not None else torch.zeros((x.shape[0], 2), device=x.device)
-            if t.shape[0] != cond.shape[0]:
-                t = t.repeat(cond.shape[0] // t.shape[0], 1)
+            if time_embed.shape[0] != cond.shape[0]:
+                time_embed = time_embed.repeat(cond.shape[0] // time_embed.shape[0], 1)
             if img_feature.shape[0] != cond.shape[0]:
                 img_feature = img_feature.repeat(cond.shape[0] // img_feature.shape[0], 1)
-            t += self.cond_mlp(cond)
-        t = torch.cat([t, img_feature], dim=-1)
+            time_embed += self.cond_mlp(cond)
+        cond_input = torch.cat([time_embed, img_feature], dim=-1)
 
         h = []
         for resnet, resnet2, attn, downsample in self.downs:
-            x = resnet(x, t)
-            x = resnet2(x, t)
+            x = resnet(x, cond_input)
+            x = resnet2(x, cond_input)
             x = attn(x)
             h.append(x)
             x = downsample(x)
-        x = self.mid_block1(x, t)
+        x = self.mid_block1(x, cond_input)
         x = self.mid_attn(x)
-        x = self.mid_block2(x, t)
+        x = self.mid_block2(x, cond_input)
 
         for resnet, resnet2, attn, upsample in self.ups:
             x = torch.cat((x, h.pop()), dim=1)
-            x = resnet(x, t)
-            x = resnet2(x, t)
+            x = resnet(x, cond_input)
+            x = resnet2(x, cond_input)
             x = attn(x)
             x = upsample(x)
 
         if self.use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
             action = self.act_conv(x)
             action = einops.rearrange(action, "b t h -> b h t")
-            state = self.state_conv(action.detach())
+            state = self.state_pred(action.detach()[:, :-1], time_embed)
             # Setup a dummy zero in the intial state
             state = torch.cat([torch.zeros_like(state[:, :1]), state], dim=1)
             x = torch.cat([state, action], dim=-1)

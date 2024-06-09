@@ -31,7 +31,6 @@ class TrajPredict(nn.Module):
     ):
         super().__init__()
         self.input_proj = nn.Linear(in_dim, hidden_dim)
-        self.query_embed = nn.Embedding(pred_len, hidden_dim)
         decoder_layer = nn.TransformerDecoderLayer(
             d_model=hidden_dim, nhead=num_heads, batch_first=True
         )
@@ -45,10 +44,10 @@ class TrajPredict(nn.Module):
             if param.dim() > 1:
                 nn.init.xavier_uniform_(param)
 
-    def forward(self, x):
+    def forward(self, x, time_embed):
         x = self.input_proj(x)
-        query_embed = self.query_embed.weight.unsqueeze(0).repeat(x.size(0), 1, 1)
-        output = self.decoder_traj(query_embed, x)
+        time_embed = time_embed.unsqueeze(1).repeat(1, x.shape[1], 1)
+        output = self.decoder_traj(time_embed, x)
         return self.output_proj(output)
 
 
