@@ -189,6 +189,7 @@ class TemporalMapUnet(nn.Module):
             )
         else:
             self.final_conv = nn.Sequential(
+                Conv1dBlock(final_up_dim, final_up_dim, kernel_size=5),
                 nn.Conv1d(final_up_dim, transition_dim, 1),
             )
         self.magic_num = 23.315
