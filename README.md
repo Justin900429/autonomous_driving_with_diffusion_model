@@ -59,7 +59,7 @@ python misc/collect_loop.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_
 python misc/collect_loop.py --save-path data/ --save-num 5000
 ```
 
-This help restart the simulation when the simulation is crashed but the number of data does not reach the target.
+This helps restart the simulation when the simulation is crashed but the number of data does not reach the target.
 
 ## C. Usage 🛠
 
