@@ -27,7 +27,19 @@ pip install carla=={CARLA_VERSION}
 
 Afterwards, please modify the `carla_sh_path` in `config/train_rl.yaml` to yours.
 
-## Data collection 📊
+## Data setup 📊
+
+>[!INFO]
+>Users can choose to download the provided data or collect the data by themselves.
+
+### Downloading the data 📦
+
+```shell
+gdown 1JfHD3bW0oBrjwQJ-nZz5GhVfLN7Nkn8R -O data.zip
+unzip -q data.zip && rm data.zip
+```
+
+### Collecting the data 📡
 
 ```shell
 python misc/data_collect.py --save-path {PLACE_TO_SAVE_DATA} --save-num {NUM_OF_DATA}
