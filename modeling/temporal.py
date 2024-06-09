@@ -228,7 +228,7 @@ class TemporalMapUnet(nn.Module):
 
         if self.use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
             action = self.act_conv(x)
-            state = self.state_conv(action)
+            state = self.state_conv(action.detach())
             x = torch.cat([state, action], dim=1)
         else:
             x = self.final_conv(x)
