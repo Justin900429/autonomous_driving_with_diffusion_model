@@ -22,21 +22,8 @@ from tqdm import tqdm
 from config import create_cfg, merge_possible_with_base, show_config
 from dataset import get_loader
 from misc import AverageMeter, MetricMeter
-from misc.constant import GuidanceType
+from misc.constant import COLOR_LIST, GuidanceType
 from modeling import build_model
-
-COLOR_LIST = [
-    (13, 36, 250),
-    (23, 129, 226),
-    (166, 230, 185),
-    (146, 15, 39),
-    (207, 214, 108),
-    (209, 69, 61),
-    (181, 221, 146),
-    (244, 41, 112),
-    (154, 162, 254),
-    (174, 6, 136),
-]
 
 
 def same_seeds(seed):
@@ -257,16 +244,7 @@ def main(args):
             if cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE == "epsilon":
                 loss = torch.nn.functional.mse_loss(pred.float(), noise.float())
             elif cfg.TRAIN.NOISE_SCHEDULER.PRED_TYPE == "sample":
-                if use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
-                    action_loss = torch.nn.functional.mse_loss(
-                        pred[..., -3:].float(), trajs[..., -3:].float()
-                    )
-                    state_loss = torch.nn.functional.mse_loss(
-                        pred[:, :-1, :-3].float(), trajs[:, 1:, :-3].float()
-                    )
-                    loss = action_loss + state_loss
-                else:
-                    loss = torch.nn.functional.mse_loss(pred.float(), trajs.float())
+                loss = torch.nn.functional.mse_loss(pred.float(), trajs.float())
             else:
                 raise ValueError("Not supported prediction type.")
 

@@ -1,5 +1,4 @@
 import math
-import pdb
 
 import einops
 import numpy as np
@@ -18,6 +17,39 @@ def to_np(x):
 # -----------------------------------------------------------------------------#
 # ---------------------------------- modules ----------------------------------#
 # -----------------------------------------------------------------------------#
+
+
+class TrajPredict(nn.Module):
+    def __init__(
+        self,
+        in_dim: int = 3,
+        out_dim: int = 3,
+        pred_len: int = 16,
+        hidden_dim: int = 256,
+        num_heads: int = 4,
+        num_layers: int = 3,
+    ):
+        super().__init__()
+        self.input_proj = nn.Linear(in_dim, hidden_dim)
+        self.query_embed = nn.Embedding(pred_len, hidden_dim)
+        decoder_layer = nn.TransformerDecoderLayer(
+            d_model=hidden_dim, nhead=num_heads, batch_first=True
+        )
+        self.decoder_traj = nn.TransformerDecoder(
+            decoder_layer, num_layers=num_layers, norm=nn.LayerNorm(hidden_dim)
+        )
+        self.output_proj = nn.Linear(hidden_dim, out_dim)
+
+    def _reset_parameters(self):
+        for param in self.parameters():
+            if param.dim() > 1:
+                nn.init.xavier_uniform_(param)
+
+    def forward(self, x):
+        x = self.input_proj(x)
+        query_embed = self.query_embed.weight.unsqueeze(0).repeat(x.size(0), 1, 1)
+        output = self.decoder_traj(query_embed, x)
+        return self.output_proj(output)
 
 
 class SinusoidalPosEmb(nn.Module):
@@ -62,9 +94,7 @@ class Conv1dBlock(nn.Module):
         super().__init__()
 
         self.block = nn.Sequential(
-            nn.Conv1d(
-                inp_channels, out_channels, kernel_size, padding=kernel_size // 2
-            ),
+            nn.Conv1d(inp_channels, out_channels, kernel_size, padding=kernel_size // 2),
             Rearrange("batch channels horizon -> batch channels 1 horizon"),
             nn.GroupNorm(n_groups, out_channels),
             Rearrange("batch channels 1 horizon -> batch channels horizon"),
@@ -124,9 +154,7 @@ class LinearAttention(nn.Module):
 
     def forward(self, x):
         qkv = self.to_qkv(x).chunk(3, dim=1)
-        q, k, v = map(
-            lambda t: einops.rearrange(t, "b (h c) d -> b h c d", h=self.heads), qkv
-        )
+        q, k, v = map(lambda t: einops.rearrange(t, "b (h c) d -> b h c d", h=self.heads), qkv)
         q = q * self.scale
 
         k = k.softmax(dim=-1)
@@ -186,9 +214,7 @@ class WeightedLoss(nn.Module):
         """
         loss = self._loss(pred, targ)
         weighted_loss = (loss * self.weights).mean()
-        a0_loss = (
-            loss[:, 0, : self.action_dim] / self.weights[0, : self.action_dim]
-        ).mean()
+        a0_loss = (loss[:, 0, : self.action_dim] / self.weights[0, : self.action_dim]).mean()
         return weighted_loss, {"a0_loss": a0_loss}
 
 
