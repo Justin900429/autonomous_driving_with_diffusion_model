@@ -6,12 +6,16 @@ from diffusers.schedulers.scheduling_ddpm import DDPMSchedulerOutput
 from diffusers.utils.torch_utils import randn_tensor
 
 from control import GuidanceLoss
+from misc.constant import GuidanceType
 
 
 class GuidanceDDPMScheduler(DDPMScheduler):
     def __init__(self, cfg, **kwargs):
         super(GuidanceDDPMScheduler, self).__init__(**kwargs)
-        self.use_classifier_guidance = cfg.GUIDANCE.LOSS_LIST is not None
+        self.use_classifier_guidance = (
+            cfg.GUIDANCE.USE_COND == GuidanceType.CLASSIFIER_GUIDANCE.name
+            and cfg.GUIDANCE.LOSS_LIST is not None
+        )
         if self.use_classifier_guidance:
             self.guidance_loss = GuidanceLoss(cfg)
 

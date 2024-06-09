@@ -88,10 +88,10 @@ def create_cfg():
 
     # ====== Guidance setup ======
     cfg.GUIDANCE = CN()
+    cfg.GUIDANCE.USE_COND = "NO_GUIDANCE"
     cfg.GUIDANCE.LOSS_LIST = None
     cfg.GUIDANCE.STEP = 2
     cfg.GUIDANCE.CLASSIFIER_SCALE = 20
-    cfg.GUIDANCE.USE_FREE_GUIDANCE = False
     cfg.GUIDANCE.FREE_SCALE = 5.5
 
     # ======= Evaluation set =======

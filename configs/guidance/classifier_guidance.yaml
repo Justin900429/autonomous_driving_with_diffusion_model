@@ -3,5 +3,6 @@ PROJECT_DIR: classifier_guidance_result
 TRAIN:
   USE_COND: CLASSIFIER_GUIDANCE
 GUIDANCE:
+  USE_COND: CLASSIFIER_GUIDANCE
   LOSS_LIST:
   - TargetGuidance
