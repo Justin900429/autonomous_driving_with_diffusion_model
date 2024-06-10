@@ -139,7 +139,7 @@ bash leaderboard/scripts/run_evaluation.sh \
 ```
 
 >[!IMPORTANT]
-> User should specify the checkpoint directly in the agent config file by setting `EVAL.CHECKPOINT`.
+> Users should specify the checkpoint directly in the agent config file by setting `EVAL.CHECKPOINT`.
 
 ```yaml
 ...
