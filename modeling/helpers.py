@@ -31,13 +31,19 @@ class TrajPredict(nn.Module):
     ):
         super().__init__()
         self.input_proj = nn.Linear(in_dim, hidden_dim)
-        decoder_layer = nn.TransformerDecoderLayer(
-            d_model=hidden_dim, nhead=num_heads, batch_first=True
+        self.positional_emb = SinusoidalPosEmb(hidden_dim)
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_dim,
+            dim_feedforward=hidden_dim * 4,
+            activation=F.silu,
+            nhead=num_heads,
+            batch_first=True,
         )
-        self.decoder_traj = nn.TransformerDecoder(
-            decoder_layer, num_layers=num_layers, norm=nn.LayerNorm(hidden_dim)
+        self.encoder_traj = nn.TransformerEncoder(
+            encoder_layer, num_layers=num_layers, norm=nn.LayerNorm(hidden_dim)
         )
         self.output_proj = nn.Linear(hidden_dim, out_dim)
+        self._reset_parameters()
 
     def _reset_parameters(self):
         for param in self.parameters():
@@ -45,9 +51,11 @@ class TrajPredict(nn.Module):
                 nn.init.xavier_uniform_(param)
 
     def forward(self, x, time_embed):
-        x = self.input_proj(x)
+        pos_embed = self.positional_emb(torch.arange(x.shape[1], device=x.device).float())
+        pos_embed = pos_embed.unsqueeze(0).repeat(x.shape[0], 1, 1)
         time_embed = time_embed.unsqueeze(1).repeat(1, x.shape[1], 1)
-        output = self.decoder_traj(time_embed, x)
+        x = self.input_proj(x) + pos_embed + time_embed
+        output = self.encoder_traj(x)
         return self.output_proj(output)
 
 
