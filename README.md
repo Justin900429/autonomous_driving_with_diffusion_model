@@ -105,6 +105,6 @@ python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-
 
 ## Acknowledgement 🙏
 
-* Our environment is adapted from [Carla Roach](https://github.com/zhejz/carla-roach). 
+* Our environment is adapted from [Carla Roach](https://github.com/zhejz/carla-roach).
 * The project template is obtained from [deep-learning-template](https://github.com/Justin900429/deep-learning-template).
 * The agent for carla leaderboard is adapted from [TCP](https://github.com/OpenDriveLab/TCP).
