@@ -90,8 +90,8 @@ def create_cfg():
     cfg.GUIDANCE = CN()
     cfg.GUIDANCE.USE_COND = "NO_GUIDANCE"
     cfg.GUIDANCE.LOSS_LIST = None
-    cfg.GUIDANCE.STEP = 2
-    cfg.GUIDANCE.CLASSIFIER_SCALE = 20
+    cfg.GUIDANCE.STEP = 1
+    cfg.GUIDANCE.CLASSIFIER_SCALE = 0.1
     cfg.GUIDANCE.FREE_SCALE = 5.5
 
     # ======= Evaluation set =======

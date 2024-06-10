@@ -4,5 +4,8 @@ TRAIN:
   USE_COND: CLASSIFIER_GUIDANCE
 GUIDANCE:
   USE_COND: CLASSIFIER_GUIDANCE
+  CLASSIFIER_SCALE: 15.0
   LOSS_LIST:
-  - TargetGuidance
+  -
+    - TargetGuidance
+    - []

@@ -194,7 +194,7 @@ class TemporalMapUnet(nn.Module):
             )
         self.magic_num = 23.315
 
-    def forward(self, x, img, time, cond=None):
+    def forward(self, x, img, time, cond=None, return_action_only=False):
         """
         x : [ B, T, D ]
         img : [ B, C, H, W]
@@ -233,6 +233,8 @@ class TemporalMapUnet(nn.Module):
         if self.use_cond == GuidanceType.CLASSIFIER_GUIDANCE:
             action = self.act_conv(x)
             action = einops.rearrange(action, "b t h -> b h t")
+            if return_action_only:
+                return action
             state = self.state_pred(action.detach()[:, :-1], time_embed)
             # Setup a dummy zero in the intial state
             state = torch.cat([torch.zeros_like(state[:, :1]), state], dim=1)

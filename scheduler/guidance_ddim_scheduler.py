@@ -30,6 +30,7 @@ class GuidanceDDIMScheduler(DDIMScheduler):
         variance_noise: Optional[torch.Tensor] = None,
         return_dict: bool = True,
         target: Optional[torch.Tensor] = None,
+        action: Optional[torch.Tensor] = None,
     ) -> Union[DDIMSchedulerOutput, Tuple]:
         if self.num_inference_steps is None:
             raise ValueError(
@@ -44,17 +45,20 @@ class GuidanceDDIMScheduler(DDIMScheduler):
         # - pred_sample_direction -> "direction pointing to x_t"
         # - pred_prev_sample -> "x_t-1"
 
+        prev_timestep = timestep - self.config.num_train_timesteps // self.num_inference_steps
+        variance = self._get_variance(timestep, prev_timestep)
+
+        if self.use_classifier_guidance and target is not None:
+            with torch.enable_grad():
+                model_std = torch.exp(0.5 * variance)
+                model_output = self.guidance_loss(model_output, action, target, model_std)
+
         # 1. get previous step value (=t-1)
-        prev_timestep = (
-            timestep - self.config.num_train_timesteps // self.num_inference_steps
-        )
 
         # 2. compute alphas, betas
         alpha_prod_t = self.alphas_cumprod[timestep]
         alpha_prod_t_prev = (
-            self.alphas_cumprod[prev_timestep]
-            if prev_timestep >= 0
-            else self.final_alpha_cumprod
+            self.alphas_cumprod[prev_timestep] if prev_timestep >= 0 else self.final_alpha_cumprod
         )
 
         beta_prod_t = 1 - alpha_prod_t
@@ -72,12 +76,8 @@ class GuidanceDDIMScheduler(DDIMScheduler):
                 sample - alpha_prod_t ** (0.5) * pred_original_sample
             ) / beta_prod_t ** (0.5)
         elif self.config.prediction_type == "v_prediction":
-            pred_original_sample = (alpha_prod_t**0.5) * sample - (
-                beta_prod_t**0.5
-            ) * model_output
-            pred_epsilon = (alpha_prod_t**0.5) * model_output + (
-                beta_prod_t**0.5
-            ) * sample
+            pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
+            pred_epsilon = (alpha_prod_t**0.5) * model_output + (beta_prod_t**0.5) * sample
         else:
             raise ValueError(
                 f"prediction_type given as {self.config.prediction_type} must be one of `epsilon`, `sample`, or"
@@ -104,18 +104,10 @@ class GuidanceDDIMScheduler(DDIMScheduler):
             ) / beta_prod_t ** (0.5)
 
         # 6. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-        pred_sample_direction = (1 - alpha_prod_t_prev - std_dev_t**2) ** (
-            0.5
-        ) * pred_epsilon
+        pred_sample_direction = (1 - alpha_prod_t_prev - std_dev_t**2) ** (0.5) * pred_epsilon
 
         # 7. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-        prev_sample = (
-            alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
-        )
-
-        if self.use_classifier_guidance and target is not None:
-            model_std = torch.exp(0.5 * variance)
-            prev_sample = self.guidance_loss(prev_sample, target, model_std)
+        prev_sample = alpha_prod_t_prev ** (0.5) * pred_original_sample + pred_sample_direction
 
         if eta > 0:
             if variance_noise is not None and generator is not None:

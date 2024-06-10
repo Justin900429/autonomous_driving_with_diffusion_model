@@ -27,6 +27,7 @@ class GuidanceDDPMScheduler(DDPMScheduler):
         generator=None,
         return_dict: bool = True,
         target: Optional[torch.Tensor] = None,
+        action: Optional[torch.Tensor] = None,
     ) -> Union[DDPMSchedulerOutput, Tuple]:
         """
         Predict the sample from the previous timestep by reversing the SDE. This function propagates the diffusion
@@ -53,14 +54,18 @@ class GuidanceDDPMScheduler(DDPMScheduler):
         t = timestep
 
         prev_t = self.previous_timestep(t)
+        variance = self._get_variance(timestep)
+
+        if self.use_classifier_guidance and target is not None:
+            with torch.enable_grad():
+                model_std = torch.exp(0.5 * variance)
+                model_output = self.guidance_loss(model_output, action, target, model_std)
 
         if model_output.shape[1] == sample.shape[1] * 2 and self.variance_type in [
             "learned",
             "learned_range",
         ]:
-            model_output, predicted_variance = torch.split(
-                model_output, sample.shape[1], dim=1
-            )
+            model_output, predicted_variance = torch.split(model_output, sample.shape[1], dim=1)
         else:
             predicted_variance = None
 
@@ -81,9 +86,7 @@ class GuidanceDDPMScheduler(DDPMScheduler):
         elif self.config.prediction_type == "sample":
             pred_original_sample = model_output
         elif self.config.prediction_type == "v_prediction":
-            pred_original_sample = (alpha_prod_t**0.5) * sample - (
-                beta_prod_t**0.5
-            ) * model_output
+            pred_original_sample = (alpha_prod_t**0.5) * sample - (beta_prod_t**0.5) * model_output
         else:
             raise ValueError(
                 f"prediction_type given as {self.config.prediction_type} must be one of `epsilon`, `sample` or"
@@ -100,16 +103,13 @@ class GuidanceDDPMScheduler(DDPMScheduler):
 
         # 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
         # See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
-        pred_original_sample_coeff = (
-            alpha_prod_t_prev ** (0.5) * current_beta_t
-        ) / beta_prod_t
+        pred_original_sample_coeff = (alpha_prod_t_prev ** (0.5) * current_beta_t) / beta_prod_t
         current_sample_coeff = current_alpha_t ** (0.5) * beta_prod_t_prev / beta_prod_t
 
         # 5. Compute predicted previous sample µ_t
         # See formula (7) from https://arxiv.org/pdf/2006.11239.pdf
         pred_prev_sample = (
-            pred_original_sample_coeff * pred_original_sample
-            + current_sample_coeff * sample
+            pred_original_sample_coeff * pred_original_sample + current_sample_coeff * sample
         )
 
         # 6. Add noise
@@ -131,9 +131,6 @@ class GuidanceDDPMScheduler(DDPMScheduler):
             else:
                 variance = (variance_scale**0.5) * variance_noise
 
-        if self.use_classifier_guidance and target is not None:
-            model_std = torch.exp(0.5 * variance_scale)
-            pred_prev_sample = self.guidance_loss(pred_prev_sample, target, model_std)
         pred_prev_sample = pred_prev_sample + variance
 
         if not return_dict:
