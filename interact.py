@@ -30,6 +30,7 @@ def parse_args():
     parser.add_argument("--config", default=None, type=str)
     parser.add_argument("--plot-on-world", default=False, action="store_true")
     parser.add_argument("--save-bev-path", default=None, type=str)
+    parser.add_argument("--seed", default=None, type=int)
     parser.add_argument("--opts", nargs=argparse.REMAINDER, default=None, type=str)
     return parser.parse_args()
 
@@ -319,5 +320,5 @@ if __name__ == "__main__":
         cfg.merge_from_list(args.opts)
     show_config(cfg)
 
-    agent = Agent(cfg, args.plot_on_world, args.save_bev_path)
+    agent = Agent(cfg, args.plot_on_world, args.save_bev_path, seed=args.seed)
     agent.run()
