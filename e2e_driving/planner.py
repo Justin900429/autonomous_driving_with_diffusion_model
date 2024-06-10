@@ -3,7 +3,6 @@ from collections import deque
 
 import numpy as np
 
-
 DEBUG = int(os.environ.get("HAS_DISPLAY", 0))
 
 
@@ -42,40 +41,18 @@ class RoutePlanner(object):
         self.min_distance = min_distance
         self.max_distance = max_distance
 
-        # self.mean = np.array([49.0, 8.0]) # for carla 9.9
-        # self.scale = np.array([111324.60662786, 73032.1570362]) # for carla 9.9
         self.mean = np.array([0.0, 0.0])  # for carla 9.10
         self.scale = np.array([111324.60662786, 111319.490945])  # for carla 9.10
 
         self.debug = Plotter(debug_size)
 
-    def set_route(self, global_plan, gps=False, global_plan_world=None):
+    def set_route(self, global_plan_world=None):
         self.route.clear()
+        for pos, cmd in global_plan_world:
+            pos = np.array([pos.location.x, pos.location.y])
+            self.route.append((pos, cmd))
 
-        if global_plan_world:
-            for (pos, cmd), (pos_word, _) in zip(global_plan, global_plan_world):
-                if gps:
-                    pos = np.array([pos["lat"], pos["lon"]])
-                    pos -= self.mean
-                    pos *= self.scale
-                else:
-                    pos = np.array([pos.location.x, pos.location.y])
-                    pos -= self.mean
-
-                self.route.append((pos, cmd, pos_word))
-        else:
-            for pos, cmd in global_plan:
-                if gps:
-                    pos = np.array([pos["lat"], pos["lon"]])
-                    pos -= self.mean
-                    pos *= self.scale
-                else:
-                    pos = np.array([pos.location.x, pos.location.y])
-                    pos -= self.mean
-
-                self.route.append((pos, cmd))
-
-    def run_step(self, gps):
+    def run_step(self, cur_pos):
         self.debug.clear()
 
         if len(self.route) == 1:
@@ -89,27 +66,27 @@ class RoutePlanner(object):
             if cumulative_distance > self.max_distance:
                 break
 
-            cumulative_distance += np.linalg.norm(
-                self.route[i][0] - self.route[i - 1][0]
-            )
-            distance = np.linalg.norm(self.route[i][0] - gps)
+            cumulative_distance += np.linalg.norm(self.route[i][0] - self.route[i - 1][0])
+            distance = np.linalg.norm(self.route[i][0] - cur_pos)
 
             if distance <= self.min_distance and distance > farthest_in_range:
                 farthest_in_range = distance
                 to_pop = i
 
-            r = 255 * int(distance > self.min_distance)
-            g = 255 * int(self.route[i][1].value == 4)
-            b = 255
-            self.debug.dot(gps, self.route[i][0], (r, g, b))
+            if DEBUG:
+                r = 255 * int(distance > self.min_distance)
+                g = 255 * int(self.route[i][1].value == 4)
+                b = 255
+                self.debug.dot(cur_pos, self.route[i][0], (r, g, b))
 
         for _ in range(to_pop):
             if len(self.route) > 2:
                 self.route.popleft()
 
-        self.debug.dot(gps, self.route[0][0], (0, 255, 0))
-        self.debug.dot(gps, self.route[1][0], (255, 0, 0))
-        self.debug.dot(gps, gps, (0, 0, 255))
-        self.debug.show()
+        if DEBUG:
+            self.debug.dot(cur_pos, self.route[0][0], (0, 255, 0))
+            self.debug.dot(cur_pos, self.route[1][0], (255, 0, 0))
+            self.debug.dot(cur_pos, cur_pos, (0, 0, 255))
+            self.debug.show()
 
         return self.route[1]

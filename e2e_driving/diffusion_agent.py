@@ -15,7 +15,6 @@ from PIL import Image
 from torchvision import transforms as T
 
 from config import create_cfg
-from control import GuidanceLoss
 from e2e_driving.planner import RoutePlanner
 from misc.constant import GuidanceType
 from misc.load_param import copy_parameters
@@ -35,8 +34,8 @@ SCHEDULER_FUNC = {
 }
 
 
-def way_point_to_pixel(waypoint):
-    pixel_val = waypoint / 23.315 * 256
+def way_point_to_pixel(waypoint, magic_num):
+    pixel_val = waypoint / magic_num * 256
     return int(256 - pixel_val)
 
 
@@ -58,6 +57,8 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
         self.step = -1
         self.wall_start = time.time()
         self.initialized = False
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         cfg = create_cfg()
         if self.config_path is not None:
@@ -93,7 +94,7 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
             cfg.MODEL.HORIZON,
             cfg.MODEL.TRANSITION_DIM,
         )
-        self.init_trajs = torch.randn(traj_shape, device="cuda")
+        self.init_trajs = torch.randn(traj_shape, device=self.device)
         self.save_path = None
         self.image_transform = T.Compose(
             [
@@ -123,13 +124,8 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
 
     def _init(self):
         self._route_planner = RoutePlanner(7.0, 50.0)
-        self._route_planner.set_route(self._global_plan, True)
+        self._route_planner.set_route(self._global_plan_world_coord)
         self.initialized = True
-
-    def _get_position(self, tick_data):
-        gps = tick_data["gps"]
-        gps = (gps - self._route_planner.mean) * self._route_planner.scale
-        return gps
 
     def sensors(self):
         return [
@@ -235,7 +231,7 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
         self.step += 1
         rgb = cv2.cvtColor(input_data["rgb"][1][:, :, :3], cv2.COLOR_BGR2RGB)
         bev = cv2.cvtColor(input_data["bev"][1][:, :, :3], cv2.COLOR_BGR2RGB)
-        gps = input_data["gps"][1][:2]
+        cur_pos = input_data["gps"][1][:2]
         speed = input_data["speed"][1]["speed"]
         compass = input_data["imu"][1][-1]
 
@@ -244,21 +240,19 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
 
         result = {
             "rgb": rgb,
-            "gps": gps,
+            "cur_pos": cur_pos,
             "speed": speed,
             "compass": compass,
             "bev": bev,
         }
 
-        pos = self._get_position(result)
-        result["gps"] = pos
-        next_wp, next_cmd = self._route_planner.run_step(pos)
+        next_wp, next_cmd = self._route_planner.run_step(cur_pos)
         result["next_command"] = next_cmd.value
 
         theta = compass + np.pi / 2
         R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
 
-        local_command_point = np.array([next_wp[0] - pos[0], next_wp[1] - pos[1]])
+        local_command_point = np.array([next_wp[0] - cur_pos[0], next_wp[1] - cur_pos[1]])
         local_command_point = R.T.dot(local_command_point).reshape(-1)
 
         result["target_point"] = (
@@ -291,31 +285,47 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
 
             return control
 
+        target_point = None
         if self.use_guidance_type != GuidanceType.NO_GUIDANCE:
             target_point = torch.FloatTensor(tick_data["target_point"]).to(self.device)
         image = self.image_transform(tick_data["rgb"]).unsqueeze(0).to(self.device)
-        traj = self.generate_traj(
-            image, target_point if self.use_guidance_type != GuidanceType.NO_GUIDANCE else None
-        )
+        traj = self.generate_traj(image, target_point)
 
-        throttle, steer, brake = self.post_process_control(*traj[0, 0, -3:].cpu().numpy())
+        throttle, steer, brake = self.post_process_control(*traj[0, 0, -3:].cpu().numpy().tolist())
         control = carla.VehicleControl(throttle=throttle, steer=steer, brake=brake)
 
         if SAVE_PATH is not None and self.step % 10 == 0:
-            self.save(tick_data, traj[0, :, :2].cpu().numpy())
+            self.save(tick_data, traj[0, :, :2].cpu().numpy(), target_point)
         return control
 
-    def save(self, tick_data, traj_data):
+    def set_global_plan(self, global_plan_gps, global_plan_world_coord, wp=None):
+        """
+        Set the plan (route) for the agent
+        """
+        self._global_plan_gps = global_plan_gps
+        self._global_plan_world_coord = global_plan_world_coord
+
+    def save(self, tick_data, traj_data, target_point):
         frame = self.step // 10
+        if target_point is not None:
+            target_point = target_point.cpu().numpy()
+            tick_data["bev"] = cv2.circle(
+                tick_data["bev"],
+                (
+                    way_point_to_pixel(target_point[0], self.model.magic_num),
+                    way_point_to_pixel(target_point[1], self.model.magic_num),
+                ),
+                3,
+                (0, 255, 0),
+                -1,
+            )
         for x, y in traj_data:
-            x, y = x / self.model.magic_num, y / self.model.magic_num
-            pixel_x = way_point_to_pixel(x)
-            pixel_y = way_point_to_pixel(y)
+            pixel_x = way_point_to_pixel(x, self.model.magic_num)
+            pixel_y = way_point_to_pixel(y, self.model.magic_num)
             tick_data["bev"] = cv2.circle(tick_data["bev"], (pixel_x, pixel_y), 3, (0, 0, 255), -1)
         Image.fromarray(tick_data["rgb"]).save(self.save_path / "rgb" / ("%04d.png" % frame))
-
         Image.fromarray(tick_data["bev"]).save(self.save_path / "bev" / ("%04d.png" % frame))
 
     def destroy(self):
-        del self.net
+        del self.model
         torch.cuda.empty_cache()
