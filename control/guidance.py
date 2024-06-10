@@ -60,6 +60,7 @@ class GuidanceLoss(nn.Module):
             if grad_scale is not None:
                 grad *= grad_scale
             x_guidance = x_guidance.detach()
-            x_guidance = x_guidance - self.scale * grad
+            x_guidance[..., :-3] = x_guidance[..., :-3] - self.scale / 15 * grad[..., :-3]
+            x_guidance[..., -3:] = x_guidance[..., -3:] - self.scale * grad[..., -3:]
         x_guidance.requires_grad_(False)
         return x_guidance
