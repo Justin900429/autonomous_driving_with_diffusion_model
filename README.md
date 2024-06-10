@@ -105,6 +105,21 @@ python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-
 
 ## D. Leaderboard 🏆
 
+### (Optional) D-0. Download the pre-trained model 📦
+
+We provide our pre-trained model for users to evaluate the performance on the Carla leaderboard.
+
+| Model                    | Link                                                                                        |
+| :------------------------ | :------------------------------------------------------------------------------------------- |
+| Classifier-free guidance | [drive](https://drive.google.com/file/d/12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y/view?usp=sharing) |
+
+```shell
+mkdir checkpoints
+
+# Classifier-free guidance
+gdown 12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y -O checkpoints/free_guidance.pth
+```
+
 ### D-1. Environment setup
 
 >[!TIP]
