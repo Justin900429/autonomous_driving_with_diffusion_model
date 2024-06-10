@@ -30,11 +30,7 @@ def _location_to_gps(lat_ref, lon_ref, location):
     EARTH_RADIUS_EQUA = 6378137.0  # pylint: disable=invalid-name
     scale = math.cos(lat_ref * math.pi / 180.0)
     mx = scale * lon_ref * math.pi * EARTH_RADIUS_EQUA / 180.0
-    my = (
-        scale
-        * EARTH_RADIUS_EQUA
-        * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
-    )
+    my = scale * EARTH_RADIUS_EQUA * math.log(math.tan((90.0 + lat_ref) * math.pi / 360.0))
     mx += location.x
     my -= location.y
 
@@ -153,9 +149,7 @@ def interpolate_trajectory(world, waypoints_trajectory, hop_resolution=1.0):
     # Obtain route plan
     route = []
     wp_route = []
-    for i in range(
-        len(waypoints_trajectory) - 1
-    ):  # Goes until the one before the last.
+    for i in range(len(waypoints_trajectory) - 1):  # Goes until the one before the last.
         waypoint = waypoints_trajectory[i]
         waypoint_next = waypoints_trajectory[i + 1]
         interpolated_trace = grp.trace_route(waypoint, waypoint_next)

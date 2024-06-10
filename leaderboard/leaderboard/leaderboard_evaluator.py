@@ -13,25 +13,17 @@ Provisional code to evaluate Autonomous Agents for the CARLA Autonomous Driving 
 from __future__ import print_function
 
 import argparse
-import copy
 import gc
 import importlib
 import os
 import signal
-import subprocess
 import sys
 import traceback
 from argparse import RawTextHelpFormatter
-from datetime import datetime
-from distutils.version import LooseVersion
 
 import carla
-import pkg_resources
-from leaderboard.autoagents.agent_wrapper import AgentError, AgentWrapper
-from leaderboard.envs.sensor_interface import (
-    SensorConfigurationInvalid,
-    SensorInterface,
-)
+from leaderboard.autoagents.agent_wrapper import AgentWrapper
+from leaderboard.envs.sensor_interface import SensorConfigurationInvalid
 from leaderboard.scenarios.route_scenario import RouteScenario
 from leaderboard.scenarios.scenario_manager import ScenarioManager
 from leaderboard.utils.route_indexer import RouteIndexer
@@ -92,9 +84,7 @@ class LeaderboardEvaluator(object):
         self.statistics_manager = statistics_manager
         self.sensors = None
         self.sensor_icons = []
-        self._vehicle_lights = (
-            carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam
-        )
+        self._vehicle_lights = carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam
 
         # First of all, we need to create the client that will send the requests
         # to the simulator. Here we'll assume the simulator is accepting
@@ -103,15 +93,12 @@ class LeaderboardEvaluator(object):
         if args.timeout:
             self.client_timeout = float(args.timeout)
         self.client.set_timeout(self.client_timeout)
-
         try:
-            self.traffic_manager = self.client.get_trafficmanager(
-                int(args.trafficManagerPort)
-            )
+            self.traffic_manager = self.client.get_trafficmanager(int(args.trafficManagerPort))
             # self.traffic_manager = self.client.get_trafficmanager(8000)
         except Exception as e:
             print(e)
-        dist = pkg_resources.get_distribution("carla")
+        # dist = pkg_resources.get_distribution("carla")
         # if dist.version != 'leaderboard':
         #     if LooseVersion(dist.version) < LooseVersion('0.9.10'):
         #         raise ImportError("CARLA version 0.9.10.1 or newer required. CARLA version found: {}".format(dist))
@@ -216,14 +203,9 @@ class LeaderboardEvaluator(object):
                 ego_vehicle_missing = False
                 for ego_vehicle in ego_vehicles:
                     ego_vehicle_found = False
-                    carla_vehicles = (
-                        CarlaDataProvider.get_world().get_actors().filter("vehicle.*")
-                    )
+                    carla_vehicles = CarlaDataProvider.get_world().get_actors().filter("vehicle.*")
                     for carla_vehicle in carla_vehicles:
-                        if (
-                            carla_vehicle.attributes["role_name"]
-                            == ego_vehicle.rolename
-                        ):
+                        if carla_vehicle.attributes["role_name"] == ego_vehicle.rolename:
                             ego_vehicle_found = True
                             self.ego_vehicles.append(carla_vehicle)
                             break
@@ -294,9 +276,7 @@ class LeaderboardEvaluator(object):
         )
 
         print("\033[1m> Registering the route statistics\033[0m")
-        self.statistics_manager.save_record(
-            current_stats_record, config.index, checkpoint
-        )
+        self.statistics_manager.save_record(current_stats_record, config.index, checkpoint)
         self.statistics_manager.save_entry_status(entry_status, False, checkpoint)
 
     def _load_and_run_scenario(self, args, config):
@@ -323,9 +303,7 @@ class LeaderboardEvaluator(object):
         try:
             self._agent_watchdog.start()
             agent_class_name = getattr(self.module_agent, "get_entry_point")()
-            self.agent_instance = getattr(self.module_agent, agent_class_name)(
-                args.agent_config
-            )
+            self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
             config.agent = self.agent_instance
 
             # Check and store the sensors
@@ -333,13 +311,9 @@ class LeaderboardEvaluator(object):
                 self.sensors = self.agent_instance.sensors()
                 track = self.agent_instance.track
 
-                AgentWrapper.validate_sensor_configuration(
-                    self.sensors, track, args.track
-                )
+                AgentWrapper.validate_sensor_configuration(self.sensors, track, args.track)
 
-                self.sensor_icons = [
-                    sensors_to_icons[sensor["type"]] for sensor in self.sensors
-                ]
+                self.sensor_icons = [sensors_to_icons[sensor["type"]] for sensor in self.sensors]
                 self.statistics_manager.save_sensors(self.sensor_icons, args.checkpoint)
 
             self._agent_watchdog.stop()
@@ -353,9 +327,7 @@ class LeaderboardEvaluator(object):
             crash_message = "Agent's sensors were invalid"
             entry_status = "Rejected"
 
-            self._register_statistics(
-                config, args.checkpoint, entry_status, crash_message
-            )
+            self._register_statistics(config, args.checkpoint, entry_status, crash_message)
             self._cleanup()
             sys.exit(-1)
 
@@ -367,9 +339,7 @@ class LeaderboardEvaluator(object):
 
             crash_message = "Agent couldn't be set up"
 
-            self._register_statistics(
-                config, args.checkpoint, entry_status, crash_message
-            )
+            self._register_statistics(config, args.checkpoint, entry_status, crash_message)
             self._cleanup()
             return
 
@@ -379,9 +349,7 @@ class LeaderboardEvaluator(object):
         try:
             self._load_and_wait_for_world(args, config.town, config.ego_vehicles)
             self._prepare_ego_vehicles(config.ego_vehicles, False)
-            scenario = RouteScenario(
-                world=self.world, config=config, debug_mode=args.debug
-            )
+            scenario = RouteScenario(world=self.world, config=config, debug_mode=args.debug)
             self.statistics_manager.set_scenario(scenario.scenario)
 
             # self.agent_instance._init()
@@ -390,20 +358,14 @@ class LeaderboardEvaluator(object):
             # Night mode
             if config.weather.sun_altitude_angle < 0.0:
                 for vehicle in scenario.ego_vehicles:
-                    vehicle.set_light_state(
-                        carla.VehicleLightState(self._vehicle_lights)
-                    )
+                    vehicle.set_light_state(carla.VehicleLightState(self._vehicle_lights))
 
             # Load scenario and run it
             if args.record:
                 self.client.start_recorder(
-                    "{}/{}_rep{}.log".format(
-                        args.record, config.name, config.repetition_index
-                    )
+                    "{}/{}_rep{}.log".format(args.record, config.name, config.repetition_index)
                 )
-            self.manager.load_scenario(
-                scenario, self.agent_instance, config.repetition_index
-            )
+            self.manager.load_scenario(scenario, self.agent_instance, config.repetition_index)
 
         except Exception as e:
             # The scenario is wrong -> set the ejecution to crashed and stop
@@ -414,9 +376,7 @@ class LeaderboardEvaluator(object):
             crash_message = "Simulation crashed"
             entry_status = "Crashed"
 
-            self._register_statistics(
-                config, args.checkpoint, entry_status, crash_message
-            )
+            self._register_statistics(config, args.checkpoint, entry_status, crash_message)
 
             if args.record:
                 self.client.stop_recorder()
@@ -450,9 +410,7 @@ class LeaderboardEvaluator(object):
         try:
             print("\033[1m> Stopping the route\033[0m")
             self.manager.stop_scenario()
-            self._register_statistics(
-                config, args.checkpoint, entry_status, crash_message
-            )
+            self._register_statistics(config, args.checkpoint, entry_status, crash_message)
 
             if args.record:
                 self.client.stop_recorder()
@@ -463,9 +421,7 @@ class LeaderboardEvaluator(object):
             self._cleanup()
 
         except Exception as e:
-            print(
-                "\n\033[91mFailed to stop the scenario, the statistics might be empty:"
-            )
+            print("\n\033[91mFailed to stop the scenario, the statistics might be empty:")
             print("> {}\033[0m\n".format(e))
             traceback.print_exc()
 
@@ -482,6 +438,7 @@ class LeaderboardEvaluator(object):
         # self.agent_instance = getattr(self.module_agent, agent_class_name)(args.agent_config)
 
         route_indexer = RouteIndexer(args.routes, args.scenarios, args.repetitions)
+        print("index from here")
 
         if args.resume:
             route_indexer.resume(args.checkpoint)
@@ -499,9 +456,7 @@ class LeaderboardEvaluator(object):
 
             for obj in gc.get_objects():
                 try:
-                    if torch.is_tensor(obj) or (
-                        hasattr(obj, "data") and torch.is_tensor(obj.data)
-                    ):
+                    if torch.is_tensor(obj) or (hasattr(obj, "data") and torch.is_tensor(obj.data)):
                         print(type(obj), obj.size())
                 except:
                     pass
@@ -510,29 +465,21 @@ class LeaderboardEvaluator(object):
 
         # save global statistics
         print("\033[1m> Registering the global statistics\033[0m")
-        global_stats_record = self.statistics_manager.compute_global_statistics(
-            route_indexer.total
-        )
+        global_stats_record = self.statistics_manager.compute_global_statistics(route_indexer.total)
         StatisticsManager.save_global_record(
             global_stats_record, self.sensor_icons, route_indexer.total, args.checkpoint
         )
 
 
 def main():
-    description = (
-        "CARLA AD Leaderboard Evaluation: evaluate your Agent in CARLA scenarios\n"
-    )
+    description = "CARLA AD Leaderboard Evaluation: evaluate your Agent in CARLA scenarios\n"
 
     # general parameters
-    parser = argparse.ArgumentParser(
-        description=description, formatter_class=RawTextHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
     parser.add_argument(
         "--host", default="localhost", help="IP of the host server (default: localhost)"
     )
-    parser.add_argument(
-        "--port", default="62000", help="TCP port to listen to (default: 2000)"
-    )
+    parser.add_argument("--port", default="62000", help="TCP port to listen to (default: 2000)")
     parser.add_argument(
         "--trafficManagerPort",
         default="8000",
@@ -610,6 +557,11 @@ def main():
 
     arguments = parser.parse_args()
 
+    # print("Open carla")
+    # carla_process = subprocess.Popen(
+    #     [os.getenv("CARLA_SERVER"), "-opengl", "-world-port=2000"],
+    # )
+
     print("init statistics_manager")
     statistics_manager = StatisticsManager()
 
@@ -617,10 +569,10 @@ def main():
         print("begin")
         leaderboard_evaluator = LeaderboardEvaluator(arguments, statistics_manager)
         leaderboard_evaluator.run(arguments)
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
     finally:
-        os.killpg(os.getpgid(carla_process.pid), signal.SIGTERM)
+        # os.killpg(os.getpgid(carla_process.pid), signal.SIGTERM)
         del leaderboard_evaluator
 
 

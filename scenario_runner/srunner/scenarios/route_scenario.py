@@ -14,18 +14,16 @@ from __future__ import print_function
 import math
 import traceback
 import xml.etree.ElementTree as ET
-import numpy.random as random
-
-import py_trees
 
 import carla
-
+import numpy.random as random
+import py_trees
 from agents.navigation.local_planner import RoadOption
 
 # pylint: disable=line-too-long
 from srunner.scenarioconfigs.scenario_configuration import (
-    ScenarioConfiguration,
     ActorConfigurationData,
+    ScenarioConfiguration,
 )
 
 # pylint: enable=line-too-long
@@ -34,34 +32,32 @@ from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (
     Idle,
     ScenarioTriggerer,
 )
-from srunner.scenarios.basic_scenario import BasicScenario
-from srunner.tools.route_parser import (
-    RouteParser,
-    TRIGGER_THRESHOLD,
-    TRIGGER_ANGLE_THRESHOLD,
-)
-from srunner.tools.route_manipulation import interpolate_trajectory
-from srunner.tools.py_trees_port import oneshot_behavior
-
-from srunner.scenarios.control_loss import ControlLoss
-from srunner.scenarios.follow_leading_vehicle import FollowLeadingVehicle
-from srunner.scenarios.object_crash_vehicle import DynamicObjectCrossing
-from srunner.scenarios.object_crash_intersection import VehicleTurningRoute
-from srunner.scenarios.other_leading_vehicle import OtherLeadingVehicle
-from srunner.scenarios.maneuver_opposite_direction import ManeuverOppositeDirection
-from srunner.scenarios.junction_crossing_route import (
-    SignalJunctionCrossingRoute,
-    NoSignalJunctionCrossingRoute,
-)
-
 from srunner.scenariomanager.scenarioatomics.atomic_criteria import (
+    ActorSpeedAboveThresholdTest,
     CollisionTest,
     InRouteTest,
-    RouteCompletionTest,
     OutsideRouteLanesTest,
+    RouteCompletionTest,
     RunningRedLightTest,
     RunningStopTest,
-    ActorSpeedAboveThresholdTest,
+)
+from srunner.scenarios.basic_scenario import BasicScenario
+from srunner.scenarios.control_loss import ControlLoss
+from srunner.scenarios.follow_leading_vehicle import FollowLeadingVehicle
+from srunner.scenarios.junction_crossing_route import (
+    NoSignalJunctionCrossingRoute,
+    SignalJunctionCrossingRoute,
+)
+from srunner.scenarios.maneuver_opposite_direction import ManeuverOppositeDirection
+from srunner.scenarios.object_crash_intersection import VehicleTurningRoute
+from srunner.scenarios.object_crash_vehicle import DynamicObjectCrossing
+from srunner.scenarios.other_leading_vehicle import OtherLeadingVehicle
+from srunner.tools.py_trees_port import oneshot_behavior
+from srunner.tools.route_manipulation import interpolate_trajectory
+from srunner.tools.route_parser import (
+    TRIGGER_ANGLE_THRESHOLD,
+    TRIGGER_THRESHOLD,
+    RouteParser,
 )
 
 SECONDS_GIVEN_PER_METERS = 0.4
@@ -148,25 +144,19 @@ def compare_scenarios(scenario_choice, existent_scenario):
             dist_position = math.sqrt(dx * dx + dy * dy + dz * dz)
             dyaw = float(pos_choice["yaw"]) - float(pos_choice["yaw"])
             dist_angle = math.sqrt(dyaw * dyaw)
-            if (
-                dist_position < TRIGGER_THRESHOLD
-                and dist_angle < TRIGGER_ANGLE_THRESHOLD
-            ):
+            if dist_position < TRIGGER_THRESHOLD and dist_angle < TRIGGER_ANGLE_THRESHOLD:
                 return True
 
     return False
 
 
 class RouteScenario(BasicScenario):
-
     """
     Implementation of a RouteScenario, i.e. a scenario that consists of driving along a pre-defined route,
     along which several smaller scenarios are triggered
     """
 
-    def __init__(
-        self, world, config, debug_mode=False, criteria_enable=True, timeout=300
-    ):
+    def __init__(self, world, config, debug_mode=False, criteria_enable=True, timeout=300):
         """
         Setup all relevant parameters and create scenarios along route
         """
@@ -218,9 +208,7 @@ class RouteScenario(BasicScenario):
         )
 
         self.route = route
-        CarlaDataProvider.set_ego_vehicle_route(
-            convert_transform_to_location(self.route)
-        )
+        CarlaDataProvider.set_ego_vehicle_route(convert_transform_to_location(self.route))
 
         config.agent.set_global_plan(gps_route, self.route)
 
@@ -234,9 +222,7 @@ class RouteScenario(BasicScenario):
 
         # Print route in debug mode
         if debug_mode:
-            self._draw_waypoints(
-                world, self.route, vertical_shift=1.0, persistency=50000.0
-            )
+            self._draw_waypoints(world, self.route, vertical_shift=1.0, persistency=50000.0)
 
     def _update_ego_vehicle(self):
         """
@@ -389,9 +375,7 @@ class RouteScenario(BasicScenario):
                 list_of_actor_conf_instances = []
             # Create an actor configuration for the ego-vehicle trigger position
 
-            egoactor_trigger_position = convert_json_to_transform(
-                definition["trigger_position"]
-            )
+            egoactor_trigger_position = convert_json_to_transform(definition["trigger_position"])
             scenario_configuration = ScenarioConfiguration()
             scenario_configuration.other_actors = list_of_actor_conf_instances
             scenario_configuration.trigger_points = [egoactor_trigger_position]
@@ -423,11 +407,7 @@ class RouteScenario(BasicScenario):
             except Exception as e:  # pylint: disable=broad-except
                 if debug_mode:
                     traceback.print_exc()
-                print(
-                    "Skipping scenario '{}' due to setup error: {}".format(
-                        definition["name"], e
-                    )
-                )
+                print("Skipping scenario '{}' due to setup error: {}".format(definition["name"], e))
                 continue
 
             scenario_instance_vec.append(scenario_instance)
@@ -510,9 +490,7 @@ class RouteScenario(BasicScenario):
         """
         Basic behavior do nothing, i.e. Idle
         """
-        scenario_trigger_distance = (
-            1.5  # Max trigger distance between route and scenario
-        )
+        scenario_trigger_distance = 1.5  # Max trigger distance between route and scenario
 
         behavior = py_trees.composites.Parallel(
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE
@@ -556,9 +534,7 @@ class RouteScenario(BasicScenario):
             scenario_triggerer
         )  # make ScenarioTriggerer the first thing to be checked
         subbehavior.add_children(scenario_behaviors)
-        subbehavior.add_child(
-            Idle()
-        )  # The behaviours cannot make the route scenario stop
+        subbehavior.add_child(Idle())  # The behaviours cannot make the route scenario stop
         behavior.add_child(subbehavior)
 
         return behavior
@@ -570,9 +546,7 @@ class RouteScenario(BasicScenario):
 
         route = convert_transform_to_location(self.route)
 
-        collision_criterion = CollisionTest(
-            self.ego_vehicles[0], terminate_on_failure=False
-        )
+        collision_criterion = CollisionTest(self.ego_vehicles[0], terminate_on_failure=False)
 
         route_criterion = InRouteTest(
             self.ego_vehicles[0], route=route, offroad_max=30, terminate_on_failure=True

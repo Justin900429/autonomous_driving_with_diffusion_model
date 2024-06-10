@@ -1,14 +1,12 @@
 import copy
 import logging
-import numpy as np
 import os
 import time
+from queue import Empty, Queue
 from threading import Thread
 
-from queue import Queue
-from queue import Empty
-
 import carla
+import numpy as np
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenariomanager.timer import GameTime
 
@@ -71,9 +69,7 @@ class BaseReader(object):
                 if current_time - latest_time > (1 / self._reading_frequency) or (
                     first_time and GameTime.get_frame() != 0
                 ):
-                    self._callback(
-                        GenericMeasurement(self.__call__(), GameTime.get_frame())
-                    )
+                    self._callback(GenericMeasurement(self.__call__(), GameTime.get_frame()))
                     latest_time = GameTime.get_time()
                     first_time = False
 
@@ -129,9 +125,7 @@ class SpeedometerReader(BaseReader):
                 time.sleep(0.2)
                 continue
 
-        return {
-            "speed": self._get_forward_speed(transform=transform, velocity=velocity)
-        }
+        return {"speed": self._get_forward_speed(transform=transform, velocity=velocity)}
 
 
 class OpenDriveMapReader(BaseReader):
@@ -193,7 +187,13 @@ class CallBack(object):
 
     def _parse_gnss_cb(self, gnss_data, tag):
         array = np.array(
-            [gnss_data.latitude, gnss_data.longitude, gnss_data.altitude],
+            [
+                gnss_data.transform.location.x,
+                gnss_data.transform.location.y,
+                gnss_data.latitude,
+                gnss_data.longitude,
+                gnss_data.altitude,
+            ],
             dtype=np.float64,
         )
         self._data_provider.update_sensor(tag, array, gnss_data.frame)

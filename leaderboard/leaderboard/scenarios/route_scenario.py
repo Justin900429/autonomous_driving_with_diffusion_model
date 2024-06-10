@@ -12,55 +12,52 @@ This module provides Challenge routes as standalone scenarios
 from __future__ import print_function
 
 import math
-import xml.etree.ElementTree as ET
-import numpy.random as random
 import os
-import py_trees
+import xml.etree.ElementTree as ET
 
 import carla
-
+import numpy.random as random
+import py_trees
 from agents.navigation.local_planner import RoadOption
+from leaderboard.utils.route_manipulation import interpolate_trajectory
+from leaderboard.utils.route_parser import (
+    TRIGGER_ANGLE_THRESHOLD,
+    TRIGGER_THRESHOLD,
+    RouteParser,
+)
 
 # pylint: disable=line-too-long
 from srunner.scenarioconfigs.scenario_configuration import (
-    ScenarioConfiguration,
     ActorConfigurationData,
+    ScenarioConfiguration,
 )
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 # pylint: enable=line-too-long
 from srunner.scenariomanager.scenarioatomics.atomic_behaviors import (
     Idle,
     ScenarioTriggerer,
 )
-from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+from srunner.scenariomanager.scenarioatomics.atomic_criteria import (
+    ActorSpeedAboveThresholdTest,
+    CollisionTest,
+    InRouteTest,
+    OutsideRouteLanesTest,
+    RouteCompletionTest,
+    RunningRedLightTest,
+    RunningStopTest,
+)
 from srunner.scenarios.basic_scenario import BasicScenario
 from srunner.scenarios.control_loss import ControlLoss
 from srunner.scenarios.follow_leading_vehicle import FollowLeadingVehicle
-from srunner.scenarios.object_crash_vehicle import DynamicObjectCrossing
-from srunner.scenarios.object_crash_intersection import VehicleTurningRoute
-from srunner.scenarios.other_leading_vehicle import OtherLeadingVehicle
-from srunner.scenarios.maneuver_opposite_direction import ManeuverOppositeDirection
 from srunner.scenarios.junction_crossing_route import (
-    SignalJunctionCrossingRoute,
     NoSignalJunctionCrossingRoute,
+    SignalJunctionCrossingRoute,
 )
-
-from srunner.scenariomanager.scenarioatomics.atomic_criteria import (
-    CollisionTest,
-    InRouteTest,
-    RouteCompletionTest,
-    OutsideRouteLanesTest,
-    RunningRedLightTest,
-    RunningStopTest,
-    ActorSpeedAboveThresholdTest,
-)
-
-from leaderboard.utils.route_parser import (
-    RouteParser,
-    TRIGGER_THRESHOLD,
-    TRIGGER_ANGLE_THRESHOLD,
-)
-from leaderboard.utils.route_manipulation import interpolate_trajectory
+from srunner.scenarios.maneuver_opposite_direction import ManeuverOppositeDirection
+from srunner.scenarios.object_crash_intersection import VehicleTurningRoute
+from srunner.scenarios.object_crash_vehicle import DynamicObjectCrossing
+from srunner.scenarios.other_leading_vehicle import OtherLeadingVehicle
 
 DATA_COLLECTION = os.environ.get("DATA_COLLECTION", None)
 
@@ -183,17 +180,13 @@ def compare_scenarios(scenario_choice, existent_scenario):
             dist_position = math.sqrt(dx * dx + dy * dy + dz * dz)
             dyaw = float(pos_choice["yaw"]) - float(pos_choice["yaw"])
             dist_angle = math.sqrt(dyaw * dyaw)
-            if (
-                dist_position < TRIGGER_THRESHOLD
-                and dist_angle < TRIGGER_ANGLE_THRESHOLD
-            ):
+            if dist_position < TRIGGER_THRESHOLD and dist_angle < TRIGGER_ANGLE_THRESHOLD:
                 return True
 
     return False
 
 
 class RouteScenario(BasicScenario):
-
     """
     Implementation of a RouteScenario, i.e. a scenario that consists of driving along a pre-defined route,
     along which several smaller scenarios are triggered
@@ -253,9 +246,7 @@ class RouteScenario(BasicScenario):
         )
 
         self.route = route
-        CarlaDataProvider.set_ego_vehicle_route(
-            convert_transform_to_location(self.route)
-        )
+        CarlaDataProvider.set_ego_vehicle_route(convert_transform_to_location(self.route))
 
         config.agent.set_global_plan(gps_route, self.route, wp_route)
 
@@ -269,9 +260,7 @@ class RouteScenario(BasicScenario):
 
         # Print route in debug mode
         if debug_mode:
-            self._draw_waypoints(
-                world, self.route, vertical_shift=1.0, persistency=50000.0
-            )
+            self._draw_waypoints(world, self.route, vertical_shift=1.0, persistency=50000.0)
 
     def _update_ego_vehicle(self):
         """
@@ -288,9 +277,7 @@ class RouteScenario(BasicScenario):
         spectator = CarlaDataProvider.get_world().get_spectator()
         ego_trans = ego_vehicle.get_transform()
         spectator.set_transform(
-            carla.Transform(
-                ego_trans.location + carla.Location(z=50), carla.Rotation(pitch=-90)
-            )
+            carla.Transform(ego_trans.location + carla.Location(z=50), carla.Rotation(pitch=-90))
         )
 
         return ego_vehicle
@@ -408,9 +395,7 @@ class RouteScenario(BasicScenario):
         for trigger in potential_scenarios_definitions.keys():
             possible_scenarios = potential_scenarios_definitions[trigger]
             if DATA_COLLECTION:
-                scenario_choice = select_scenario_randomly(
-                    possible_scenarios
-                )  # random sampling
+                scenario_choice = select_scenario_randomly(possible_scenarios)  # random sampling
             else:
                 scenario_choice = select_scenario(
                     possible_scenarios
@@ -475,9 +460,7 @@ class RouteScenario(BasicScenario):
                 list_of_actor_conf_instances = []
             # Create an actor configuration for the ego-vehicle trigger position
 
-            egoactor_trigger_position = convert_json_to_transform(
-                definition["trigger_position"]
-            )
+            egoactor_trigger_position = convert_json_to_transform(definition["trigger_position"])
             scenario_configuration = ScenarioConfiguration()
             scenario_configuration.other_actors = list_of_actor_conf_instances
             scenario_configuration.trigger_points = [egoactor_trigger_position]
@@ -505,11 +488,7 @@ class RouteScenario(BasicScenario):
                         world.wait_for_tick()
 
             except Exception as e:
-                print(
-                    "Skipping scenario '{}' due to setup error: {}".format(
-                        definition["name"], e
-                    )
-                )
+                print("Skipping scenario '{}' due to setup error: {}".format(definition["name"], e))
                 continue
 
             scenario_instance_vec.append(scenario_instance)
@@ -590,9 +569,7 @@ class RouteScenario(BasicScenario):
         """
         Basic behavior do nothing, i.e. Idle
         """
-        scenario_trigger_distance = (
-            1.5  # Max trigger distance between route and scenario
-        )
+        scenario_trigger_distance = 1.5  # Max trigger distance between route and scenario
 
         behavior = py_trees.composites.Parallel(
             policy=py_trees.common.ParallelPolicy.SUCCESS_ON_ONE
@@ -639,9 +616,7 @@ class RouteScenario(BasicScenario):
             scenario_triggerer
         )  # make ScenarioTriggerer the first thing to be checked
         subbehavior.add_children(scenario_behaviors)
-        subbehavior.add_child(
-            Idle()
-        )  # The behaviours cannot make the route scenario stop
+        subbehavior.add_child(Idle())  # The behaviours cannot make the route scenario stop
         behavior.add_child(subbehavior)
         return behavior
 
@@ -653,16 +628,12 @@ class RouteScenario(BasicScenario):
         # we terminate the route if collision or red light infraction happens during data collection
 
         if DATA_COLLECTION:
-            collision_criterion = CollisionTest(
-                self.ego_vehicles[0], terminate_on_failure=True
-            )
+            collision_criterion = CollisionTest(self.ego_vehicles[0], terminate_on_failure=True)
             red_light_criterion = RunningRedLightTest(
                 self.ego_vehicles[0], terminate_on_failure=True
             )
         else:
-            collision_criterion = CollisionTest(
-                self.ego_vehicles[0], terminate_on_failure=False
-            )
+            collision_criterion = CollisionTest(self.ego_vehicles[0], terminate_on_failure=False)
             red_light_criterion = RunningRedLightTest(
                 self.ego_vehicles[0], terminate_on_failure=False
             )
