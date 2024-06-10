@@ -269,13 +269,8 @@ class Agent:
             target_point = None
             image = self.process_image(state["camera"][0])
             if self.use_guidance_type != GuidanceType.NO_GUIDANCE:
-                next_point = (
-                    state["next_waypoint"]
-                    if self.use_guidance_type == GuidanceType.FREE_GUIDANCE
-                    else self.get_future_waypoints()
-                )
                 target_point = self.process_next_waypoint(
-                    next_point=next_point,
+                    next_point=state["next_waypoint"],
                     cur_point=state["cur_waypoint"],
                     yaw=state["compass"][0][0],
                 )
