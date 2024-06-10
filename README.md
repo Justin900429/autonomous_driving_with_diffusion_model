@@ -141,6 +141,9 @@ Please check the below table and command to run different benchmarks.
 | Longest 6 | `leaderboard/data/scenarios/eval_scenarios.json` | `leaderboard/data/evaluation_routes/longest6_tiny.xml` |
 
 ```shell
+# Open this in another terminal
+bash {carla_server_root}/CarlaUE4.sh --world-port=2000 -opengl
+
 bash leaderboard/scripts/run_evaluation.sh <carla_server_root> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>
 
 # Concrete example (take longest 6 as an example)
