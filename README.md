@@ -147,8 +147,6 @@ EVAL:
     CHECKPOINT: /path/to/checkpoint.pth
 ```
 
-### D-2. Setup the script
-
 ## Acknowledgement 🙏
 
 * Our environment is adapted from [Carla Roach](https://github.com/zhejz/carla-roach).
