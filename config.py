@@ -5,8 +5,6 @@ from colorama import Fore, Style
 from tabulate import tabulate
 from yacs.config import CfgNode as CN
 
-from misc.constant import GuidanceType
-
 
 def create_cfg():
     cfg = CN()
@@ -16,6 +14,7 @@ def create_cfg():
 
     cfg.ENV = CN()
     cfg.ENV.CONFIG_PATH = "data_collect"
+    cfg.ENV.AGENT_WARMUP = 1
 
     # ======= Model setup =======
     cfg.MODEL = CN()
