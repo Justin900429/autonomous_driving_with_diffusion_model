@@ -110,7 +110,7 @@ python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-
 We provide our pre-trained model for users to evaluate the performance on the Carla leaderboard.
 
 | Model                    | Link                                                                                        |
-| :------------------------ | :------------------------------------------------------------------------------------------- |
+| :----------------------- | :------------------------------------------------------------------------------------------ |
 | Classifier-free guidance | [drive](https://drive.google.com/file/d/12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y/view?usp=sharing) |
 
 ```shell
@@ -141,11 +141,11 @@ Please check the below table and command to run different benchmarks.
 | Longest 6 | `leaderboard/data/scenarios/eval_scenarios.json` | `leaderboard/data/evaluation_routes/longest6_tiny.xml` |
 
 ```shell
-bash leaderboard/scripts/run_evaluation.sh <carla_server_path> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>
+bash leaderboard/scripts/run_evaluation.sh <carla_server_root> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>
 
 # Concrete example (take longest 6 as an example)
 bash leaderboard/scripts/run_evaluation.sh \
-     /path/to/carla/0.9.10/CarlaUE4.sh \
+     /path/to/carla/0.9.10\
      leaderboard/data/scenarios/eval_scenarios.json \
      leaderboard/data/evaluation_routes/longest6_tiny.xml \
      configs/guidance/free_guidance.yaml \

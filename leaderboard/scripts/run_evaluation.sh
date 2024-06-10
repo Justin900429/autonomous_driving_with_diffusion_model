@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -ne 6 ]; then
-    echo "Usage: $0 <carla_server_path> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>"
+    echo "Usage: $0 <carla_server_root> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>"
     exit 1
 fi
 
