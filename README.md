@@ -103,6 +103,52 @@ python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-
 > [!NOTE]
 > Both `--plot-on-world` and `--save-bev-path` are optional.
 
+## D. Leaderboard 🏆
+
+### D-1. Environment setup
+
+>[!TIP]
+> This environment is different from the previous one and requires python 3.7 with Carla 0.9.10.
+
+```shell
+conda create -n carla-leaderboard python=3.7 -y
+conda activate carla-leaderboard
+conda install pytorch==1.13.0 torchvision==0.14.0 -c pytorch
+pip install -r requirements-leaderboard.txt
+```
+
+### D-2. Run the evaluator
+
+Please check the below table and command to run different benchmarks.
+
+| Benchmark | Scenario file                                    | Route file                                             |
+| --------- | ------------------------------------------------ | ------------------------------------------------------ |
+| Longest 6 | `leaderboard/data/scenarios/eval_scenarios.json` | `leaderboard/data/evaluation_routes/longest6_tiny.xml` |
+
+```shell
+bash leaderboard/scripts/run_evaluation.sh <carla_server_path> <scenario_file> <route_file> <agent_config_file> <save_folder> <save_file>
+
+# Concrete example (take longest 6 as an example)
+bash leaderboard/scripts/run_evaluation.sh \
+     /path/to/carla/0.9.10/CarlaUE4.sh \
+     leaderboard/data/scenarios/eval_scenarios.json \
+     leaderboard/data/evaluation_routes/longest6_tiny.xml \
+     configs/guidance/free_guidance.yaml \
+     free_guidance_longest_6 \
+     free_guidance_longest_6/result_longest_6.json
+```
+
+>[!IMPORTANT]
+> User should specify the checkpoint directly in the agent config file by setting `EVAL.CHECKPOINT`.
+
+```yaml
+...
+EVAL:
+    CHECKPOINT: /path/to/checkpoint.pth
+```
+
+### D-2. Setup the script
+
 ## Acknowledgement 🙏
 
 * Our environment is adapted from [Carla Roach](https://github.com/zhejz/carla-roach).
