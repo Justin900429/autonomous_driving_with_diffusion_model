@@ -99,7 +99,7 @@ def create_cfg():
     cfg.EVAL.ETA = 0
     cfg.EVAL.CHECKPOINT = None
     cfg.EVAL.SCHEDULER = "ddim"
-    cfg.EVAL.SAMPLE_STEPS = 10
+    cfg.EVAL.SAMPLE_STEPS = 2
     return cfg
 
 
