@@ -87,12 +87,12 @@ class Agent:
     def do_buffer(self, num_buffer):
         for _ in range(num_buffer):
             self.env.step({0: None})
-            
+
     def get_car_agent(self):
-        ev_handler =  self.env.envs[0].env.unwrapped.ev_handler
+        ev_handler = self.env.envs[0].env.unwrapped.ev_handler
         if ev_handler is not None:
             self.car_agent = ev_handler.ego_vehicles["hero"].vehicle
-            
+
     def world_to_agent(self, world_pos, agent_pos, agent_yaw):
         x, y = world_pos
         x -= agent_pos[0]
@@ -183,14 +183,6 @@ class Agent:
                         car_state[0] -= 1
                     elif car_state[0] < -1:
                         car_state[0] += 1
-                    # R = np.array(
-                    #     [
-                    #         [np.cos(theta), -np.sin(theta)],
-                    #         [np.sin(theta), np.cos(theta)],
-                    #     ]
-                    # )
-                    # traj = np.array([traj[0] - cur_traj[0][0], traj[1] - cur_traj[0][1]])
-                    # traj = R.T.dot(traj).reshape(-1)
                     traj = self.world_to_agent(traj, cur_traj[0][:2], theta)
                     pixel_x = way_point_to_pixel(traj[1])
                     pixel_y = way_point_to_pixel(-traj[0])
@@ -202,24 +194,29 @@ class Agent:
                             traj[1] / self.magic_number,
                             -traj[0] / self.magic_number,
                             *car_state.tolist(),
-                            *action.tolist()
+                            *action.tolist(),
                         )
                     )
-                target_pos_traj = self.world_to_agent(
-                    target_pos, cur_traj[0][:2], theta
-                )
+                target_pos_traj = self.world_to_agent(target_pos, cur_traj[0][:2], theta)
                 with open(
                     os.path.join(self.save_root, "waypoints", f"{self.cur_save:06d}.txt"), "w"
                 ) as f:
-                    f.write(f"{target_pos_traj[1] / self.magic_number} {-target_pos_traj[0] / self.magic_number}\n")
+                    f.write(
+                        f"{target_pos_traj[1] / self.magic_number} {-target_pos_traj[0] / self.magic_number}\n"
+                    )
                     for traj in added_traj:
                         f.write(f"{' '.join(map(str, traj))}\n")
                 Image.fromarray(target_bev).save(save_bev_path)
                 cur_traj.clear()
                 self.cur_save += 1
                 count_to_collect = 0
-                
-                if prev_red is True and self.car_agent is not None and self.car_agent.is_alive and self.car_agent.is_at_traffic_light():
+
+                if (
+                    prev_red is True
+                    and self.car_agent is not None
+                    and self.car_agent.is_alive
+                    and self.car_agent.is_at_traffic_light()
+                ):
                     traffic_light = self.car_agent.get_traffic_light()
                     if traffic_light.get_state() == carla.TrafficLightState.Red:
                         traffic_light.set_state(carla.TrafficLightState.Green)
