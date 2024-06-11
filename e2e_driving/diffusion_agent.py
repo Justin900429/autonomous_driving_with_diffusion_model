@@ -280,7 +280,6 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
 
         return throttle_res, steer_res, brake_res
 
-    @torch.no_grad()
     def run_step(self, input_data, timestamp):
         if not self.initialized:
             self._init()
