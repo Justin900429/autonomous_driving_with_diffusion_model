@@ -91,7 +91,7 @@ def create_cfg():
     cfg.GUIDANCE.LOSS_LIST = None
     cfg.GUIDANCE.STEP = 1
     cfg.GUIDANCE.CLASSIFIER_SCALE = 0.1
-    cfg.GUIDANCE.FREE_SCALE = 5.5
+    cfg.GUIDANCE.FREE_SCALE = 1
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()
@@ -99,7 +99,7 @@ def create_cfg():
     cfg.EVAL.ETA = 0
     cfg.EVAL.CHECKPOINT = None
     cfg.EVAL.SCHEDULER = "ddim"
-    cfg.EVAL.SAMPLE_STEPS = 2
+    cfg.EVAL.SAMPLE_STEPS = 10
     return cfg
 
 
