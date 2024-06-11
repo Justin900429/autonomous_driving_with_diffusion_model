@@ -55,7 +55,7 @@ if __name__ == "__main__":
         for i in range(3):
             length = 0
             veh_collision = 0
-            with open(path) as f:
+            with open(args.json_file) as f:
                 data = json.load(f)
                 records = data["_checkpoint"]["records"][i::3]
                 for record in records:
