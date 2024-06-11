@@ -214,7 +214,9 @@ class Agent:
             brake_res = 0.0
 
         if brake_res > 0.5:
-            throttle_res = float(0)
+            brake_res = 1.0
+            steer_res = 0.0
+            throttle_res = 0.0
 
         return np.array([throttle_res, steer_res, brake_res])
 
