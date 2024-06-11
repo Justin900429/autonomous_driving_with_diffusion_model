@@ -34,28 +34,21 @@ class GuidanceLoss(nn.Module):
 
     def forward(
         self,
-        x_init: torch.Tensor,
+        x_guidance: torch.Tensor,
         action: torch.Tensor,
         target: torch.Tensor,
         grad_scale: Union[float, torch.Tensor] = None,
     ) -> torch.Tensor:
-        x_guidance = x_init
         for _ in range(self.guidance_step):
             with torch.enable_grad():
                 if not x_guidance.requires_grad:
                     x_guidance.requires_grad_()
                 loss = self.compute_loss(x_guidance, target)
-                action_grad = torch.autograd.grad(
+                state_grad, action_grad = torch.autograd.grad(
                     [loss],
-                    [action],
-                    retain_graph=True,
-                )[0]
-                state_grad = torch.autograd.grad(
-                    [loss],
-                    [x_guidance],
-                )[
-                    0
-                ][..., :-3]
+                    [x_guidance, action],
+                )
+                state_grad = state_grad[..., :-3]
                 grad = torch.cat([state_grad, action_grad], dim=-1)
             if grad_scale is not None:
                 grad *= grad_scale
@@ -63,4 +56,4 @@ class GuidanceLoss(nn.Module):
             x_guidance[..., :-3] = x_guidance[..., :-3] - self.scale / 15 * grad[..., :-3]
             x_guidance[..., -3:] = x_guidance[..., -3:] - self.scale * grad[..., -3:]
         x_guidance.requires_grad_(False)
-        return x_guidance
+        return x_guidance.clip(-1, 1)
