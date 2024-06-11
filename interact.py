@@ -130,23 +130,31 @@ class Agent:
         self.noise_scheduler.set_timesteps(self.cfg.EVAL.SAMPLE_STEPS, device=self.device)
         action = None
         for t in self.noise_scheduler.timesteps:
-            input_trajs = torch.cat([trajs, trajs], dim=0)  # [B * 2, H, 7]
-            with torch.no_grad():
-                model_output_with_cond, model_output_without_cond = self.model(
-                    input_trajs,
+            if self.use_guidance_type == GuidanceType.FREE_GUIDANCE:
+                input_trajs = torch.cat([trajs, trajs], dim=0)  # [B * 2, H, 7]
+                with torch.no_grad():
+                    model_output_with_cond, model_output_without_cond = self.model(
+                        input_trajs,
+                        image,
+                        t.reshape(-1),
+                        cond=target,
+                    ).chunk(2, dim=0)
+                model_output = model_output_without_cond + self.cfg.GUIDANCE.FREE_SCALE * (
+                    model_output_with_cond - model_output_without_cond
+                )
+            else:
+                model_output = self.model(
+                    trajs,
                     image,
                     t.reshape(-1),
-                    cond=target,
-                    return_action_only=self.use_guidance_type == GuidanceType.CLASSIFIER_GUIDANCE,
-                ).chunk(2, dim=0)
-            model_output = model_output_without_cond + self.cfg.GUIDANCE.FREE_SCALE * (
-                model_output_with_cond - model_output_without_cond
-            )  # If no free guidance apply, this will be the same as model_output_without_cond
+                    return_action_and_time_only=(
+                        self.use_guidance_type == GuidanceType.CLASSIFIER_GUIDANCE
+                    ),
+                )
             if self.use_guidance_type == GuidanceType.CLASSIFIER_GUIDANCE:
-                action = model_output
+                action, time_embed = model_output
                 if not action.requires_grad:
                     action.requires_grad_()
-                time_embed = self.model.time_mlp(t.reshape(-1))
                 state = self.model.state_pred(action[:, :-1], time_embed)
                 state = torch.cat([torch.zeros_like(state[:, :1]), state], dim=1)
                 model_output = torch.cat([state, action], dim=-1)
