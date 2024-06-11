@@ -91,7 +91,7 @@ def create_cfg():
     cfg.GUIDANCE.LOSS_LIST = None
     cfg.GUIDANCE.STEP = 1
     cfg.GUIDANCE.CLASSIFIER_SCALE = 0.1
-    cfg.GUIDANCE.FREE_SCALE = 1
+    cfg.GUIDANCE.FREE_SCALE = 1.0
 
     # ======= Evaluation set =======
     cfg.EVAL = CN()
