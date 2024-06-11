@@ -12,3 +12,4 @@ dictor==0.1.12
 requests==2.31.0
 pygame==2.5.2
 opencv-python==4.9.0.80
+gdown
