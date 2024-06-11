@@ -128,7 +128,7 @@ gdown 12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y -O checkpoints/free_guidance.pth
 ```shell
 conda create -n carla-leaderboard python=3.7 -y
 conda activate carla-leaderboard
-conda install pytorch==1.13.0 torchvision==0.14.0 -c pytorch
+conda install pytorch==1.13.0 torchvision==0.14.0 pytorch-cuda=11.7 -c pytorch -c nvidia
 pip install -r requirements-leaderboard.txt
 ```
 
