@@ -1,10 +1,8 @@
 import datetime
-import json
 import math
 import os
 import pathlib
 import time
-from collections import OrderedDict, deque
 
 import carla
 import cv2
@@ -51,7 +49,6 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
         self.steer_step = 0
         self.last_moving_status = 0
         self.last_moving_step = -1
-        self.last_steers = deque()
 
         self.config_path = path_to_conf_file
         self.step = -1
@@ -102,7 +99,6 @@ class DiffusionAgent(autonomous_agent.AutonomousAgent):
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
         )
-        self.last_steers = deque()
         if SAVE_PATH is not None:
             now = datetime.datetime.now()
             string = pathlib.Path(os.environ["ROUTES"]).stem + "_"
