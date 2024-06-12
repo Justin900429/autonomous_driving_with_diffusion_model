@@ -165,6 +165,15 @@ EVAL:
     CHECKPOINT: /path/to/checkpoint.pth
 ```
 
+### D-3. Generate the statistics
+
+```shell
+python e2e_driving/statistics.py --json-file <save_file>
+
+# Concrete example
+python e2e_driving/statistics.py --json-file free_guidance_longest_6/result_longest_6.json
+```
+
 ## Acknowledgement 🙏
 
 * Our environment is adapted from [Carla Roach](https://github.com/zhejz/carla-roach).
