@@ -167,6 +167,8 @@ EVAL:
 
 ### D-3. Generate the statistics
 
+After obtaining the `<save_file>` results, users can generate the statistics by running the following command:
+
 ```shell
 python e2e_driving/statistics.py --json-file <save_file>
 
