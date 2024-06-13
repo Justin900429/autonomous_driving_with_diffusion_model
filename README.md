@@ -109,15 +109,23 @@ python interact.py --config configs/guidance/classifier_guidance.yaml --plot-on-
 
 We provide our pre-trained model for users to evaluate the performance on the Carla leaderboard.
 
-| Model                    | Link                                                                                        |
-| :----------------------- | :------------------------------------------------------------------------------------------ |
-| Classifier-free guidance | [drive](https://drive.google.com/file/d/12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y/view?usp=sharing) |
+| Model                                | Link                                                                                           |
+| :----------------------------------- | :--------------------------------------------------------------------------------------------- |
+| Classifier-free guidance             | [drive](https://drive.google.com/file/d/12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y/view?usp=sharing)    |
+| Classifier guidance                  | [drive](https://drive.google.com/file/d/1FZT1XsSuTUN5MawNsJaFNbBIt2xwPLgA/view?usp=drive_link) |
+| Classifier guidance (with more data) | [drive](https://drive.google.com/file/d/1_a3fjs9M6MS4ofQuyStn3flT1kS_lbMC/view?usp=drive_link) |
 
 ```shell
 mkdir checkpoints
 
 # Classifier-free guidance
 gdown 12jZFmxaNRq2NhY2cHL95KvydbEuiJH4Y -O checkpoints/free_guidance.pth
+
+# Classifier guidance
+gdown 1FZT1XsSuTUN5MawNsJaFNbBIt2xwPLgA -O checkpoints/classifier_guidance.pth
+
+# Classifier gudiance (with more training data)
+gdown 1_a3fjs9M6MS4ofQuyStn3flT1kS_lbMC -O checkpoints/classifier_guidance_plus.pth
 ```
 
 ### D-1. Environment setup
@@ -175,6 +183,61 @@ python e2e_driving/statistics.py --json-file <save_file>
 # Concrete example
 python e2e_driving/statistics.py --json-file free_guidance_longest_6/result_longest_6.json
 ```
+
+<table>
+    <tr>
+      <th rowspan="2">Approach</th>
+      <th colspan="3">Score</th>
+      <th colspan="3">Collision</th>
+      <th rowspan="2">Red light</th>
+      <th rowspan="2">Vehicle Blocked</th>
+      <th rowspan="2">Outside Road</th>
+    </tr>
+    <tr>
+      <td>Composed</td>
+      <td>Penalty</td>
+      <td>Route</td>
+      <td>Layout</td>
+      <td>Pedestrian</td>
+      <td>Vehicle</td>
+    </tr>
+    <tr>
+      <td> Classifier-free guidance </td>
+      <td> 0.00 </td>
+      <td> 0.00 </td>
+      <td> 100.00 </td>
+      <td> 0.53 </td>
+      <td> 0.76 </td>
+      <td> 8.77 </td>
+      <td> 2.60 </td>
+      <td> 0.00 </td>
+      <td> 0.17 </td>
+    </tr>
+    <tr>
+        <td>classifier guidance</td>
+        <td>2.66</td>
+        <td>0.10</td>
+        <td>72.80</td>
+        <td>0.25</td>
+        <td>0.00</td>
+        <td>4.53</td>
+        <td>2.82</td>
+        <td>0.37</td>
+        <td>0.00</td>
+    </tr>
+    <tr>
+        <td>classifier guidance*</td>
+        <td>14.89</td>
+        <td>0.23</td>
+        <td>84.84</td>
+        <td>0.00</td>
+        <td>0.00</td>
+        <td>0.91</td>
+        <td>1.90</td>
+        <td>0.23</td>
+        <td>0.00</td>
+    </tr>
+</table>
 
 ## Acknowledgement 🙏
 
