@@ -2,9 +2,18 @@
 
 This repo is made to acheive controllable end-to-end driving through the Diffusion model. We provide the code for training the model and interacting with the model in the Carla simulator. We also provide the pre-trained model for users to evaluate the performance on the Carla leaderboard 1.0.
 
-|                 No Guidance                  |              Classifier-free Guidance               |              Classifier Guidance               |
-| :------------------------------------------: | :-------------------------------------------------: | :--------------------------------------------: |
-| <video src=./assets/no_guide.mp4 width=300/> | <video src=./assets/classifier_free.mp4 width=300/> | <video src=./assets/classifier.mp4 width=300/> |
+<table>
+    <tr>
+        <th>No Guidance</th>
+        <th>Classifier-free Guidance</th>
+        <th>Classifier Guidance</th>
+    </tr>
+    <tr>
+        <th> <video src=./assets/no_guide.mp4 width=300 > </th>
+        <th> <video src=./assets/classifier_free.mp4 width=300 > </th>
+        <th> <video src=./assets/classifier.mp4 width=300 > </th>
+    </tr>
+</table>
 
 ## A. Setup 🚀
 
