@@ -1,5 +1,11 @@
 # Carla Diffusion
 
+This repo is made to acheive controllable end-to-end driving through the Diffusion model. We provide the code for training the model and interacting with the model in the Carla simulator. We also provide the pre-trained model for users to evaluate the performance on the Carla leaderboard 1.0.
+
+|                 No Guidance                 |                    Classifier-free Guidance                     |                  Classifier Guidance                  |
+| :-----------------------------------------: | :-------------------------------------------------------------: | :---------------------------------------------------: |
+| ![no guidance video](./assets/no_guide.mp4) | ![classifier-free guidance video](./assets/classifier_free.mp4) | ![classifier guidance video](./assets/classifier.mp4) |
+
 ## A. Setup 🚀
 
 Please ensure you have installed the Carla simulator and the Python API.
