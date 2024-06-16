@@ -218,7 +218,9 @@ class Agent:
                     and self.car_agent.is_at_traffic_light()
                 ):
                     traffic_light = self.car_agent.get_traffic_light()
-                    if traffic_light.get_state() == carla.TrafficLightState.Red:
+                    if (traffic_light.get_state() == carla.TrafficLightState.Red) or (
+                        traffic_light.get_state() == carla.TrafficLightState.Yellow
+                    ):
                         traffic_light.set_state(carla.TrafficLightState.Green)
                     continue
 

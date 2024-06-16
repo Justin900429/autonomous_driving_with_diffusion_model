@@ -18,12 +18,8 @@ class ObsManager(ObsManagerBase):
         self.obs_space = spaces.Dict(
             {
                 "at_red_light": spaces.Discrete(2),
-                "trigger_location": spaces.Box(
-                    low=-5000, high=5000, shape=(3,), dtype=np.float32
-                ),
-                "trigger_square": spaces.Box(
-                    low=-5000, high=5000, shape=(5, 3), dtype=np.float32
-                ),
+                "trigger_location": spaces.Box(low=-5000, high=5000, shape=(3,), dtype=np.float32),
+                "trigger_square": spaces.Box(low=-5000, high=5000, shape=(5, 3), dtype=np.float32),
             }
         )
 
@@ -32,7 +28,15 @@ class ObsManager(ObsManagerBase):
 
     def get_observation(self):
         obs = {
-            "at_red_light": int(self._parent_actor.vehicle.is_at_traffic_light() and self._parent_actor.vehicle.get_traffic_light().get_state() == carla.TrafficLightState.Red),
+            "at_red_light": int(
+                self._parent_actor.vehicle.is_at_traffic_light()
+                and (
+                    self._parent_actor.vehicle.get_traffic_light().get_state()
+                    == carla.TrafficLightState.Red
+                    or self._parent_actor.vehicle.get_traffic_light().get_state()
+                    == carla.TrafficLightState.Yellow
+                )
+            ),
             "trigger_location": np.zeros((3,), dtype=np.float32),
             "trigger_square": np.zeros((5, 3), dtype=np.float32),
         }
