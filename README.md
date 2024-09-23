@@ -1,6 +1,6 @@
-# Carla Diffusion
+# Autonomous Driving with Diffusion Model
 
-This repo is made to acheive controllable end-to-end driving through the Diffusion model. We provide the code for training the model and interacting with the model in the Carla simulator. We also provide the pre-trained model for users to evaluate the performance on the Carla leaderboard 1.0.
+This repo is made to acheive controllable end-to-end autonomous driving through the Diffusion model. We provide the code for training the model and interacting with the model in the Carla simulator. We also provide the pre-trained model for users to evaluate the performance on the Carla leaderboard 1.0.
 
 |                 No Guidance                 |                    Classifier-free Guidance                     |                  Classifier Guidance                  |
 | :-----------------------------------------: | :-------------------------------------------------------------: | :---------------------------------------------------: |
